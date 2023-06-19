@@ -15,12 +15,12 @@ const client = new OramaClient({
 const results = await client.search({
   term: 'red leather shoes',
   where: {
-		price: {
-			lte: 9.99
-		},
-		gender: 'unisex'
+    price: {
+      lte: 9.99
+    },
+    gender: 'unisex'
   },
-	limit: 5,
-	offset: 1
+  limit: 5,
+  offset: 1
 })
 ```
