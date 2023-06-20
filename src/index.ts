@@ -1,87 +1,73 @@
 import { Results, type SearchParams } from '@orama/orama'
 import { formatElapsedTime } from '@orama/orama/components'
+import cuid from 'cuid'
+
 import { Collector } from './collector.js'
+import { Endpoint, IOramaClient, Method, OramaInitResponse } from './types.js'
+import fetchFn from './fetchFn.js'
 
-interface IOramaClient {
-  api_key: string
-  endpoint: string
-}
-
-type Endpoint =
-  | 'search'
-  | 'init'
-  | 'info'
-  | 'health'
-
-type Method =
-  | 'GET'
-  | 'POST'
 
 export class OramaClient {
-  private ready = false
   private readonly api_key: string
   private readonly endpoint: string
-  private collector: Collector
+  private collector: Promise<Collector | void>
 
   constructor (params: IOramaClient) {
     this.api_key = params.api_key
     this.endpoint = params.endpoint
-    this.collector = new Collector({
-      flushInterval: 5000,  // @todo: make this configurable?
-      flushSize: 25,  // @todo: make this configurable?
-      endpoint: `${this.endpoint}/collect`, // @todo: change this to actual telemetry endpoint
-      api_key: this.api_key // @todo: change this to actual telemetry api key
-    })
-
-    this.init()
-      .then(this.setReady)
-      .catch(err => console.error(err))
+    this.collector = this.init()
   }
 
   public async search (query: SearchParams): Promise<Results> {
-    if (!this.ready) {
-      console.warn('OramaClient is not ready yet. Operation will be delayed.')
-    }
-
     const timeStart = Date.now()
-    const results = await this.fetch<Results>('search', 'POST', query)
+    const [results, contentEncoding] = await this.fetch<Results>('search', 'POST', query)
     const timeEnd = Date.now()
+    results.elapsed = await formatElapsedTime(BigInt(timeEnd * 1_000_000 - timeStart * 1_000_000))
 
-    results.elapsed = await formatElapsedTime(BigInt(timeEnd - timeStart))
-
-    await this.collector.add({
-      query,
-      results,
-      timeStart,
-      timeEnd
+    this.collector.then(collector => {
+      if (collector) {
+        collector.add({
+          rawSearchString: query.term,
+          resultsCount: results.hits.length,
+          roundTripTime: timeEnd - timeStart,
+          contentEncoding,
+          query,
+          searchedAt: new Date(timeStart),
+        })
+      }
     })
 
     return results
   }
 
-  private setReady (): void {
-    this.ready = true
+  private createCollector (body: OramaInitResponse): Collector {
+    return Collector.create({
+      id: cuid(),
+      flushInterval: 5000,  // @todo: make this configurable?
+      flushSize: 25,  // @todo: make this configurable?
+      endpoint: body.collectUrl,
+      api_key: this.api_key,
+      deploymentID: body.deploymentID,
+      index: body.index,
+    })
   }
 
-  private async init (): Promise<void> {
-    await this.fetch('init', 'POST')
+  private init () {
+    return this.fetch<OramaInitResponse>('init', 'GET')
+      .then(([b]) => this.createCollector(b))
+      .catch(err => console.log(err))
   }
 
-  private async fetch<T = unknown> (path: Endpoint, method: Method, body?: object): Promise<T> {
-    const requestOptions: RequestInit = {
+  private async fetch<T = unknown> (path: Endpoint, method: Method, body?: object): Promise<[T, string?]> {
+    const res = await fetchFn(
+      `${this.endpoint}/${path}`,
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.api_key}`
-      }
-    }
+      { Authorization: `Bearer ${this.api_key}` },
+      body
+    )
 
-    if (method === 'POST' && body !== undefined) {
-      requestOptions.body = JSON.stringify(body)
-    }
+    let contentEncoding = res.headers.get('Content-Encoding') || undefined
 
-    const res = await fetch(`${this.endpoint}/${path}`, requestOptions)
-
-    return await res.json()
+    return [await res.json(), contentEncoding]
   }
 }
