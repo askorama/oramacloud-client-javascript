@@ -30,6 +30,7 @@ export interface OramaInitResponse {
 export interface IOramaClient {
   api_key: string
   endpoint: string
+  throttle?: number
 }
 
 export type Endpoint =

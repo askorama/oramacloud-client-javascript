@@ -1,28 +1,11 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse } from './types.js'
-import type { SearchParams } from '@orama/orama'
-import { Results } from '@orama/orama'
+import type { SearchParams, Results } from '@orama/orama'
 import { formatElapsedTime } from '@orama/orama/components'
 import fetchFn from './fetchFn.js'
 import cuid from 'cuid'
 
 import { Collector } from './collector.js'
 import { throttle } from './throttle.js'
-
-interface IOramaClient {
-  api_key: string
-  endpoint: string
-  throttle?: number
-}
-
-type Endpoint =
-  | 'search'
-  | 'init'
-  | 'info'
-  | 'health'
-
-type Method =
-  | 'GET'
-  | 'POST'
 
 export class OramaClient {
   private readonly api_key: string
