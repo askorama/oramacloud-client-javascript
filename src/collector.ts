@@ -1,23 +1,17 @@
+import type { SearchEvent, ICollector } from './types.js'
 import fetchFn from './fetchFn.js'
-import { SearchEvent, ICollector } from './types.js'
 
 type Data = object[]
 
 export class Collector {
-  private readonly id: string
   private data: Data
+  private readonly id: string
   private readonly flushInterval: number
   private readonly flushSize: number
   private readonly endpoint: string
   private readonly api_key: string
   private readonly index: string
   private readonly deploymentID: string
-
-  public static create (params: ICollector): Collector {
-    const collector = new Collector(params)
-    collector.start()
-    return collector
-  }
 
   private constructor (params: ICollector) {
     this.data = []
@@ -28,6 +22,12 @@ export class Collector {
     this.api_key = params.api_key
     this.index = params.index
     this.deploymentID = params.deploymentID
+  }
+
+  public static create (params: ICollector): Collector {
+    const collector = new Collector(params)
+    collector.start()
+    return collector
   }
 
   public add (data: SearchEvent): void {
