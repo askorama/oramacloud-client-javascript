@@ -8,7 +8,7 @@ export interface SearchEvent {
   resultsCount: number
   roundTripTime: number
   contentEncoding?: string
-  searchedAt: Date,
+  searchedAt: Date
   cached?: boolean
 }
 

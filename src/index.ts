@@ -78,7 +78,7 @@ export class OramaClient {
             contentEncoding,
             query,
             cached,
-            searchedAt: new Date(),
+            searchedAt: new Date()
           })
         }
       })
