@@ -1,19 +1,19 @@
-import fetchFn from "./fetchFn.js"
-import { SearchEvent, ICollector } from "./types.js"
+import fetchFn from './fetchFn.js'
+import { SearchEvent, ICollector } from './types.js'
 
 type Data = object[]
 
 export class Collector {
   private readonly id: string
   private data: Data
-  private flushInterval: number
-  private flushSize: number
-  private endpoint: string
-  private api_key: string
+  private readonly flushInterval: number
+  private readonly flushSize: number
+  private readonly endpoint: string
+  private readonly api_key: string
   private readonly index: string
   private readonly deploymentID: string
 
-  public static create (params: ICollector) {
+  public static create (params: ICollector): Collector {
     const collector = new Collector(params)
     collector.start()
     return collector
@@ -30,7 +30,7 @@ export class Collector {
     this.deploymentID = params.deploymentID
   }
 
-  public add (data: SearchEvent) {
+  public add (data: SearchEvent): void {
     this.data.push({
       rawSearchString: data.rawSearchString,
       query: data.query,
@@ -41,7 +41,7 @@ export class Collector {
       // The referer is different for every event:
       // the user can search in different pages of the website
       // and the referer will be different for each page
-      referer: typeof location !== 'undefined' ? location.toString() : undefined,
+      referer: typeof location !== 'undefined' ? location.toString() : undefined
       // The user agent instead is the same for every event
       // and can be gather from the request headers in the worker
     })
@@ -51,7 +51,7 @@ export class Collector {
     }
   }
 
-  public flush() {
+  public flush (): void {
     if (this.data.length === 0) {
       return
     }
@@ -66,16 +66,16 @@ export class Collector {
       deploymentID: this.deploymentID,
       index: this.index,
       id: this.id,
-      events: data,
+      events: data
     }
 
     fetchFn(this.endpoint, 'POST', {
       Authorization: `Bearer ${this.api_key}`
-    }, body)  
+    }, body)
       .catch(err => console.error(err))
   }
 
-  private start () {
+  private start (): void {
     setInterval(this.flush.bind(this), this.flushInterval)
   }
 }

@@ -1,7 +1,6 @@
-import { Method } from "./types.js"
+import { Method } from './types.js'
 
-
-export default async function fetchFn(url: string, method: Method, headers: Record<string, string>, body?: object): Promise<Response> {
+export default async function fetchFn (url: string, method: Method, headers: Record<string, string>, body?: object): Promise<Response> {
   const requestOptions: RequestInit = {
     method,
     headers: {
@@ -14,6 +13,5 @@ export default async function fetchFn(url: string, method: Method, headers: Reco
     requestOptions.body = JSON.stringify(body)
   }
 
-  console.log(requestOptions)
   return await fetch(url, requestOptions)
 }
