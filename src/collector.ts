@@ -32,18 +32,18 @@ export class Collector {
 
   public add (data: SearchEvent) {
     this.data.push({
-      index: this.index,
-      id: this.id,
-      source: 'fe',
-      deploymentID: this.deploymentID,
       rawSearchString: data.rawSearchString,
       query: data.query,
       resultsCount: data.resultsCount,
       roundTripTime: data.roundTripTime,
       contentEncoding: data.contentEncoding,
       searchedAt: data.searchedAt,
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-      referrer: typeof location !== 'undefined' ? location.toString() : undefined,
+      // The referer is different for every event:
+      // the user can search in different pages of the website
+      // and the referer will be different for each page
+      referer: typeof location !== 'undefined' ? location.toString() : undefined,
+      // The user agent instead is the same for every event
+      // and can be gather from the request headers in the worker
     })
 
     if (this.data.length >= this.flushSize) {
@@ -58,12 +58,20 @@ export class Collector {
 
     // Swap out the data array *sync*
     // so that we can continue to collect events
-    let data = this.data
+    const data = this.data
     this.data = []
+
+    const body = {
+      source: 'fe',
+      deploymentID: this.deploymentID,
+      index: this.index,
+      id: this.id,
+      events: data,
+    }
 
     fetchFn(this.endpoint, 'POST', {
       Authorization: `Bearer ${this.api_key}`
-    }, data)  
+    }, body)  
       .catch(err => console.error(err))
   }
 
