@@ -3,11 +3,17 @@ import type { SearchParams, Results } from '@orama/orama'
 import { formatElapsedTime } from '@orama/orama/components'
 import cuid from 'cuid'
 import fetchFn from './fetchFn.js'
+import { Cache } from './cache.js'
 import { Collector } from './collector.js'
 import { throttle } from './throttle.js'
 import * as CONST from './constants.js'
 
+type RichSearchParams = SearchParams & {
+  fresh?: boolean
+}
+
 export class OramaClient {
+  private cache: Optional<Cache<Results>>
   private readonly api_key: string
   private readonly endpoint: string
   private readonly collector: Promise<Collector | void>
@@ -37,28 +43,48 @@ export class OramaClient {
     this.collector = this.init()
   }
 
-  public async search (query: SearchParams): Promise<Results> {
-    const timeStart = Date.now()
-    const [results, contentEncoding] = await this.fetch<Results>('search', 'POST', query)
-    const timeEnd = Date.now()
-    results.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
+  public async search (query: RichSearchParams): Promise<Results> {
+    const cacheKey = JSON.stringify(query)
+
+    let roundTripTime: number
+    let searchResults: Results
+    let contentEncoding: Optional<string>
+    let cached = false
+
+    if (!query.fresh && this.cache?.has(cacheKey)) {
+      roundTripTime = 0
+      searchResults = this.cache.get(cacheKey)!
+      cached = true
+    } else {
+      const timeStart = Date.now()
+      const [results, encoding] = await this.fetch<Results>('search', 'POST', query)
+      const timeEnd = Date.now()
+
+      results.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
+      contentEncoding = encoding
+      searchResults = results
+      roundTripTime = timeEnd - timeStart
+
+      this.cache?.set(cacheKey, searchResults)
+    }
 
     if (this.telemetry) {
       this.collector.then(collector => {
         if (collector != null) {
           collector.add({
             rawSearchString: query.term,
-            resultsCount: results.hits.length,
-            roundTripTime: timeEnd - timeStart,
+            resultsCount: searchResults.hits.length,
+            roundTripTime,
             contentEncoding,
             query,
-            searchedAt: new Date(timeStart)
+            cached,
+            searchedAt: new Date()
           })
         }
       })
     }
 
-    return results
+    return searchResults
   }
 
   private createCollector (body: OramaInitResponse): Collector {
@@ -77,6 +103,7 @@ export class OramaClient {
     return await this.fetch<OramaInitResponse>('init', 'GET')
       .then(([b]) => {
         if (this.telemetry) {
+          this.cache = new Cache<Results>({ version: b.deploymentID })
           this.createCollector(b)
         }
       })

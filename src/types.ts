@@ -9,6 +9,7 @@ export interface SearchEvent {
   roundTripTime: number
   contentEncoding?: string
   searchedAt: Date
+  cached?: boolean
 }
 
 export interface ICollector {

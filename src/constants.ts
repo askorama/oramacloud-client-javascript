@@ -5,3 +5,5 @@ export const MICROSECONDS_BASE = 1_000_000
 export const DEFAULT_TELEMETRY_FLUSH_INTERVAL = 5000
 
 export const DEFAULT_TELEMETRY_FLUSH_SIZE = 25
+
+export const ORAMA_CACHE_LOCALSTORAGE_KEY = '___orama_cache___'
