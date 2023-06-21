@@ -9,10 +9,10 @@ type Data = object[]
 
 export class Collector {
   private data: Data
-  private flushInterval: number
-  private flushSize: number
-  private endpoint: string
-  private api_key: string
+  private readonly flushInterval: number
+  private readonly flushSize: number
+  private readonly endpoint: string
+  private readonly api_key: string
 
   constructor (params: ICollector) {
     this.data = []

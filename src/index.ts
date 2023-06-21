@@ -1,10 +1,12 @@
 import { Results, type SearchParams } from '@orama/orama'
 import { formatElapsedTime } from '@orama/orama/components'
 import { Collector } from './collector.js'
+import { throttle } from './throttle.js'
 
 interface IOramaClient {
   api_key: string
   endpoint: string
+  throttle?: number
 }
 
 type Endpoint =
@@ -21,14 +23,21 @@ export class OramaClient {
   private ready = false
   private readonly api_key: string
   private readonly endpoint: string
-  private collector: Collector
+  private readonly collector: Collector
+  private readonly throttle: number | undefined
 
   constructor (params: IOramaClient) {
     this.api_key = params.api_key
     this.endpoint = params.endpoint
+    
+    if (params.throttle !== undefined) {
+      this.throttle = params.throttle
+      this.search = throttle(this.search.bind(this), this.throttle) as typeof this.search
+    }
+
     this.collector = new Collector({
-      flushInterval: 5000,  // @todo: make this configurable?
-      flushSize: 25,  // @todo: make this configurable?
+      flushInterval: 5000, // @todo: make this configurable?
+      flushSize: 25, // @todo: make this configurable?
       endpoint: `${this.endpoint}/collect`, // @todo: change this to actual telemetry endpoint
       api_key: this.api_key // @todo: change this to actual telemetry api key
     })
@@ -48,7 +57,7 @@ export class OramaClient {
     const timeEnd = Date.now()
 
     results.elapsed = await formatElapsedTime(BigInt(timeEnd - timeStart))
-
+ 
     await this.collector.add({
       query,
       results,
