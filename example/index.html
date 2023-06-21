@@ -1,0 +1,65 @@
+<html>
+    <head>
+        <title>Example</title>
+    <body>
+
+        <input type="text" id="endpoint" value="https://cloud.orama.foo/index/tommaso-test-2" />
+        <input type="text" id="apikey" value="foo" />
+
+        <input type="text" id="term" value="a" />
+        <button id="search">Search</button>
+
+        <div id="results"></div>
+
+        <script type="module" type="text/javascript">
+            import { OramaClient } from './out.js';
+            
+            const endpoint = document.getElementById('endpoint');
+            const apikey = document.getElementById('apikey');
+            const term = document.getElementById('term');
+            const search = document.getElementById('search');
+            const resultsDiv = document.getElementById('results');
+
+            let instance = undefined;
+            search.addEventListener('click', async e => {
+                if (!instance) {
+                    console.log('creating instance', {
+                        api_key: apikey.value,
+                        endpoint: endpoint.value
+                    })
+                    instance = new OramaClient({
+                        api_key: apikey.value,
+                        endpoint: endpoint.value
+                    });
+                }
+
+                resultsDiv.innerHTML = '';
+
+                const result = await instance.search({
+                    term: term.value
+                })
+
+                const { hits, count, elapsed } = result
+
+                console.log('result', result);
+
+                resultsDiv.innerHTML = `
+                    <div>Found ${count} results in ${elapsed.formatted}</div>
+                    <ul>
+                        ${hits.map(hit => `
+                            <li>
+                                <p>${hit.id} - ${hit.score}</p>
+                                <pre>${JSON.stringify(hit.document)}</pre>
+                            </li>
+                        `).join('')}
+                    </ul>
+
+`
+
+
+            })
+
+            
+        </script>
+    </body>
+</html>
