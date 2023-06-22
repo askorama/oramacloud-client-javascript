@@ -1,125 +1,141 @@
-import type { Endpoint, IOramaClient, Method, OramaInitResponse, Optional } from './types.js'
+import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig } from './types.js'
 import type { SearchParams, Results } from '@orama/orama'
 import { formatElapsedTime } from '@orama/orama/components'
 import cuid from 'cuid'
-import fetchFn from './fetchFn.js'
-import { Cache } from './cache.js'
-import { Collector } from './collector.js'
-import { throttle } from './throttle.js'
-import * as CONST from './constants.js'
 
-type RichSearchParams = SearchParams & {
-  fresh?: boolean
-}
+import { Cache } from './cache.js'
+import * as CONST from './constants.js'
+import { Collector } from './collector.js'
+import { HeartBeat } from './heartbeat.js'
 
 export class OramaClient {
-  private cache: Optional<Cache<Results>>
   private readonly api_key: string
   private readonly endpoint: string
-  private readonly collector: Promise<Collector | void>
-  private readonly throttle: Optional<number>
-  private readonly telemetry: Optional<boolean>
-  private readonly telemetryFlushInterval: Optional<number>
-  private readonly telemetryFlushSize: Optional<number>
+  private readonly collector?: Collector
+  private readonly cache?: Cache<Results>
+
+  private heartbeat?: HeartBeat
+  private initPromise?: Promise<void>
 
   constructor (params: IOramaClient) {
     this.api_key = params.api_key
     this.endpoint = params.endpoint
 
-    if (params.throttle !== undefined && params.throttle.enabled) {
-      this.throttle = params?.throttle?.frequency ?? CONST.DEFAULT_THROTTLE_FREQUENCY
-      this.search = throttle(this.search.bind(this), this.throttle) as typeof this.search
+    // Telemetry is enabled by default
+    if (params.telemetry !== false) {
+      const telementryConfig = {
+        id: cuid(),
+        api_key: this.api_key,
+        flushInterval: params.telemetry?.flushInterval ?? CONST.DEFAULT_TELEMETRY_FLUSH_INTERVAL,
+        flushSize: params.telemetry?.flushSize ?? CONST.DEFAULT_TELEMETRY_FLUSH_SIZE,
+      }
+      this.collector = Collector.create(telementryConfig)
     }
 
-    if (typeof params.telemetry === 'undefined') {
-      this.telemetry = true
-    } else {
-      this.telemetry = params.telemetry?.enabled ?? true
-      this.telemetryFlushInterval = params.telemetry?.flushInterval ?? CONST.DEFAULT_TELEMETRY_FLUSH_INTERVAL
-      this.telemetryFlushSize = params.telemetry?.flushSize ?? CONST.DEFAULT_TELEMETRY_FLUSH_SIZE
+    // Cache is enabled by default
+    if (params.cache !== false) {
+      const cacheParams = {}
+      this.cache = new Cache<Results>(cacheParams)
     }
 
-    this.init().catch(err => console.error(err))
-    this.collector = this.init()
+    this.init()
   }
 
-  public async search (query: RichSearchParams): Promise<Results> {
+  public async search (query: SearchParams, config?: SearchConfig): Promise<Results> {
+    await this.initPromise
+
     const cacheKey = JSON.stringify(query)
 
     let roundTripTime: number
     let searchResults: Results
-    let contentEncoding: Optional<string>
     let cached = false
 
-    if (!query.fresh && this.cache?.has(cacheKey)) {
+    const shouldUseCache = config?.fresh !== true && this.cache?.has(cacheKey)
+    if (shouldUseCache) {
       roundTripTime = 0
-      searchResults = this.cache.get(cacheKey)!
+      searchResults = this.cache!.get(cacheKey)!
       cached = true
     } else {
       const timeStart = Date.now()
-      const [results, encoding] = await this.fetch<Results>('search', 'POST', query)
+      searchResults = await this.fetch<Results>(
+        'search',
+        'POST',
+        { q: query },
+        config?.abortController
+      )
       const timeEnd = Date.now()
 
-      results.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
-      contentEncoding = encoding
-      searchResults = results
+      searchResults.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
       roundTripTime = timeEnd - timeStart
 
       this.cache?.set(cacheKey, searchResults)
     }
 
-    if (this.telemetry) {
-      this.collector.then(collector => {
-        if (collector != null) {
-          collector.add({
-            rawSearchString: query.term,
-            resultsCount: searchResults.hits.length,
-            roundTripTime,
-            contentEncoding,
-            query,
-            cached,
-            searchedAt: new Date()
-          })
-        }
+    if (this.collector) {
+      this.collector.add({
+        rawSearchString: query.term,
+        resultsCount: searchResults.hits.length,
+        roundTripTime,
+        query,
+        cached,
+        searchedAt: new Date()
       })
     }
 
     return searchResults
   }
 
-  private createCollector (body: OramaInitResponse): Collector {
-    return Collector.create({
-      id: cuid(),
-      flushInterval: this.telemetryFlushInterval!,
-      flushSize: this.telemetryFlushSize!,
-      endpoint: body.collectUrl,
-      api_key: this.api_key,
-      deploymentID: body.deploymentID,
-      index: body.index
+  public startHeartBeat (config: HeartBeatConfig): void {
+    this.heartbeat?.stop()
+    this.heartbeat = new HeartBeat({
+      ...config,
+      endpoint: this.endpoint + `/health?api-key=${this.api_key}`,
     })
+    this.heartbeat.start()
   }
 
-  private async init (): Promise<Collector | void> {
-    return await this.fetch<OramaInitResponse>('init', 'GET')
-      .then(([b]) => {
-        if (this.telemetry) {
-          this.cache = new Cache<Results>({ version: b.deploymentID })
-          this.createCollector(b)
-        }
+  public stopHeartBeat (): void {
+    this.heartbeat?.stop()
+  }
+
+  private init() {
+    this.initPromise = this.fetch<OramaInitResponse>('init', 'GET')
+      .then(b => {
+        this.collector?.setParams({
+          endpoint: b.collectUrl,
+          deploymentID: b.deploymentID,
+          index: b.index
+        })
       })
       .catch(err => console.log(err))
   }
 
-  private async fetch<T = unknown> (path: Endpoint, method: Method, body?: object): Promise<[T, string?]> {
-    const res = await fetchFn(
-      `${this.endpoint}/${path}`,
+  private async fetch<T = unknown> (path: Endpoint, method: Method, body?: object, abortController?: AbortController): Promise<T> {
+    if (abortController && abortController.signal.aborted) {
+      throw new Error('Request aborted')
+    }
+
+    const requestOptions: RequestInit = {
       method,
-      { Authorization: `Bearer ${this.api_key}` },
-      body
-    )
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      signal: abortController?.signal
+    }
 
-    const contentEncoding = res.headers.get('Content-Encoding') || undefined
+    if (method === 'POST' && body !== undefined) {
+      requestOptions.body = Object.entries(body)
+        .map(([key, value]) => `${key}=${encodeURIComponent(JSON.stringify(value))}`)
+        .join('&')
+    }
 
-    return [await res.json(), contentEncoding]
+    const res: Response = await fetch(`${this.endpoint}/${path}?api-key=${this.api_key}`, requestOptions)
+
+    return await res.json()
   }
+}
+
+export interface SearchConfig {
+  abortController?: AbortController,
+  fresh?: boolean
 }

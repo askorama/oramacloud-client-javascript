@@ -1,31 +1,24 @@
-import type { SearchEvent, ICollector } from './types.js'
-import fetchFn from './fetchFn.js'
+
+import type { SearchEvent, ICollector, TelemetryConfig } from './types.js'
 
 type Data = object[]
 
 export class Collector {
   private data: Data
-  private readonly id: string
-  private readonly flushInterval: number
-  private readonly flushSize: number
-  private readonly endpoint: string
-  private readonly api_key: string
-  private readonly index: string
-  private readonly deploymentID: string
+  private params?: ICollector
+  private readonly config: CollectorConstructor
 
-  private constructor (params: ICollector) {
+  private constructor (config: CollectorConstructor) {
     this.data = []
-    this.id = params.id
-    this.flushInterval = params.flushInterval
-    this.flushSize = params.flushSize
-    this.endpoint = params.endpoint
-    this.api_key = params.api_key
-    this.index = params.index
-    this.deploymentID = params.deploymentID
+    this.config = config
   }
 
-  public static create (params: ICollector): Collector {
-    const collector = new Collector(params)
+  public setParams (params: ICollector): void {
+    this.params = params
+  }
+
+  public static create (config: CollectorConstructor): Collector {
+    const collector = new Collector(config)
     collector.start()
     return collector
   }
@@ -36,23 +29,20 @@ export class Collector {
       query: data.query,
       resultsCount: data.resultsCount,
       roundTripTime: data.roundTripTime,
-      contentEncoding: data.contentEncoding,
       searchedAt: data.searchedAt,
       // The referer is different for every event:
       // the user can search in different pages of the website
       // and the referer will be different for each page
       referer: typeof location !== 'undefined' ? location.toString() : undefined
-      // The user agent instead is the same for every event
-      // and can be gather from the request headers in the worker
     })
 
-    if (this.data.length >= this.flushSize) {
+    if (this.params && this.data.length >= this.config.flushSize) {
       this.flush()
     }
   }
 
   public flush (): void {
-    if (this.data.length === 0) {
+    if (!this.params || this.data.length === 0) {
       return
     }
 
@@ -63,19 +53,28 @@ export class Collector {
 
     const body = {
       source: 'fe',
-      deploymentID: this.deploymentID,
-      index: this.index,
-      id: this.id,
-      events: data
+      deploymentID: this.params.deploymentID,
+      index: this.params.index,
+      id: this.config.id,
+      // The user agent is the same for every event
+      // Because we use "application/x-www-form-urlencoded",
+      // the browser doens't send the user agent automatically
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+      events: data,
     }
 
-    fetchFn(this.endpoint, 'POST', {
-      Authorization: `Bearer ${this.api_key}`
-    }, body)
-      .catch(err => console.error(err))
+    navigator.sendBeacon?.(
+      this.params.endpoint + `?api-key=${this.config.api_key}`, 
+      JSON.stringify(body)
+    )
   }
 
   private start (): void {
-    setInterval(this.flush.bind(this), this.flushInterval)
+    setInterval(this.flush.bind(this), this.config.flushInterval)
   }
+}
+
+export interface CollectorConstructor extends TelemetryConfig {
+  id: string,
+  api_key: string,
 }
