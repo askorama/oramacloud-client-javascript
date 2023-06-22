@@ -3,41 +3,81 @@
         <title>Example</title>
     <body>
 
-        <input type="text" id="endpoint" value="https://cloud.orama.foo/index/tommaso-test-2" />
-        <input type="text" id="apikey" value="foo" />
+        <div>
+            <label>
+                <input type="text" id="endpoint" value="https://cloud.orama.foo/index/tommaso-test-2" />
+                Endpoint
+            </label>
+        </div>
+        <div>
+            <label>
+                <input type="text" id="apikey" value="foo" />
+                API Key
+            </label>
+        </div>
+        <div>
+            <label>
+                <input type="checkbox" id="withcache" value="withcache" />
+                With cache
+            </label>
+        </div>
+        <div>
+            <label>
+                <input type="checkbox" id="withtelemetry" checked value="withtelemetry" />
+                With telemetry
+            </label>
+        </div>
+        <div>
+            <label>
+                <input type="checkbox" id="withheartbeat" checked value="withheartbeat" />
+                With HeartBeat
+            </label>
+        </div>
+        <button id="create">Create</button>
 
-        <input type="text" id="term" value="a" />
-        <button id="search">Search</button>
-
-        <div id="results"></div>
+        <div id="instance" style="display: none;">
+            <input type="text" name="term" id="term" placeholder="search as you type"/>
+            <div id="results"></div>
+        </div>
 
         <script type="module" type="text/javascript">
             import { OramaClient } from './out.js';
             
             const endpoint = document.getElementById('endpoint');
             const apikey = document.getElementById('apikey');
+            const create = document.getElementById('create');
+            const instance = document.getElementById('instance');
+            const withcache = document.getElementById('withcache');
+            const withtelemetry = document.getElementById('withtelemetry');
+            const withheartbeat = document.getElementById('withheartbeat');
+
+            let orama = undefined;
+            create.addEventListener('click', e => {
+                orama = new OramaClient({
+                    api_key: apikey.value,
+                    endpoint: endpoint.value,
+                    telemetry: withtelemetry.checked ? { } : false,
+                    cache: withcache.checked ? { } : false,
+                })
+                if (withheartbeat.checked) {
+                    orama.startHeartBeat({
+                        frequency: 5000,
+                    })
+                }
+                instance.style.display = 'block';
+            })
+
             const term = document.getElementById('term');
-            const search = document.getElementById('search');
             const resultsDiv = document.getElementById('results');
 
-            let instance = undefined;
-            search.addEventListener('click', async e => {
-                if (!instance) {
-                    console.log('creating instance', {
-                        api_key: apikey.value,
-                        endpoint: endpoint.value
-                    })
-                    instance = new OramaClient({
-                        api_key: apikey.value,
-                        endpoint: endpoint.value
-                    });
-                }
-
+            term.addEventListener('input', async () => {
                 resultsDiv.innerHTML = '';
 
-                const result = await instance.search({
+                console.log('searching...')
+                const result = await orama.search({
                     term: term.value
                 })
+                console.log('searched', result)
 
                 const { hits, count, elapsed } = result
 

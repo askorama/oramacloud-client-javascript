@@ -1,27 +1,15 @@
-import type { Optional } from './types.js'
-import { isBrowser } from './utils.js'
-import * as CONST from './constants.js'
-
-interface CacheParams {
-  version: string
-  persist?: boolean
-}
+import type { CacheConfig, Optional } from './types.js'
+import { hasLocalStorage } from './utils.js'
 
 type CacheMap<T = unknown> = Map<string, T>
 
 export class Cache<V = unknown> {
   private cache: CacheMap<V>
-  private readonly version: string
-  private readonly persist: boolean
+  private readonly config: CacheConstructorParams
 
-  constructor (params: CacheParams) {
+  constructor (config: CacheConstructorParams) {
     this.cache = new Map()
-    this.version = params.version
-    this.persist = params.persist ?? true
-
-    if (this.persist) {
-      this.load()
-    }
+    this.config = config
   }
 
   public set (key: string, value: V): void {
@@ -47,26 +35,7 @@ export class Cache<V = unknown> {
   public size (): number {
     return this.cache.size
   }
+}
 
-  public save (): void {
-    if (isBrowser) {
-      const cacheData = JSON.stringify({ version: this.version, cache: [...this.cache] })
-      localStorage.setItem(CONST.ORAMA_CACHE_LOCALSTORAGE_KEY, cacheData)
-    }
-  }
-
-  public load (): void {
-    if (isBrowser) {
-      const cache = localStorage.getItem(CONST.ORAMA_CACHE_LOCALSTORAGE_KEY)
-
-      if (cache != null) {
-        const cacheData = JSON.parse(cache)
-        if (cacheData.version !== this.version) {
-          return this.clear()
-        }
-
-        this.cache = new Map(JSON.parse(cacheData.cache))
-      }
-    }
-  }
+export interface CacheConstructorParams extends CacheConfig {
 }

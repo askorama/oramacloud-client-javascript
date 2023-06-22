@@ -7,17 +7,12 @@ export interface SearchEvent {
   query: SearchParams
   resultsCount: number
   roundTripTime: number
-  contentEncoding?: string
   searchedAt: Date
   cached?: boolean
 }
 
 export interface ICollector {
-  id: string
-  flushInterval: number
-  flushSize: number
   endpoint: string
-  api_key: string
   deploymentID: string
   index: string
 }
@@ -33,15 +28,19 @@ export interface OramaInitResponse {
 export interface IOramaClient {
   api_key: string
   endpoint: string
-  throttle?: {
-    frequency?: number
-    enabled?: boolean
-  }
-  telemetry?: {
-    enabled?: boolean
-    flushInterval?: number
-    flushSize?: number
-  }
+  telemetry?: Partial<TelemetryConfig> | false
+  cache?: Partial<CacheConfig> | false
+}
+
+export interface TelemetryConfig {
+  flushInterval: number
+  flushSize: number
+}
+
+export interface CacheConfig {}
+
+export interface HeartBeatConfig {
+  frequency: number
 }
 
 export type Endpoint =
