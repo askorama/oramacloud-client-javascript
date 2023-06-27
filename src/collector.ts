@@ -1,5 +1,6 @@
 
 import type { SearchEvent, ICollector, TelemetryConfig } from './types.js'
+import { version } from '../package.json'
 
 type Data = object[]
 
@@ -55,7 +56,8 @@ export class Collector {
       source: 'fe',
       deploymentID: this.params.deploymentID,
       index: this.params.index,
-      id: this.config.id,
+      oramaId: this.config.id,
+      oramaVersion: version,
       // The user agent is the same for every event
       // Because we use "application/x-www-form-urlencoded",
       // the browser doens't send the user agent automatically

@@ -7,8 +7,10 @@ import { Cache } from './cache.js'
 import * as CONST from './constants.js'
 import { Collector } from './collector.js'
 import { HeartBeat } from './heartbeat.js'
+import { version } from '../package.json'
 
 export class OramaClient {
+  private readonly id = cuid()
   private readonly api_key: string
   private readonly endpoint: string
   private readonly collector?: Collector
@@ -24,7 +26,7 @@ export class OramaClient {
     // Telemetry is enabled by default
     if (params.telemetry !== false) {
       const telementryConfig = {
-        id: cuid(),
+        id: this.id,
         api_key: this.api_key,
         flushInterval: params.telemetry?.flushInterval ?? CONST.DEFAULT_TELEMETRY_FLUSH_INTERVAL,
         flushSize: params.telemetry?.flushSize ?? CONST.DEFAULT_TELEMETRY_FLUSH_SIZE,
@@ -119,12 +121,19 @@ export class OramaClient {
       method,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        // Unfortunatelly we can't send this headers otherwise we should pay CORS preflight request
+        // 'x-orama-instance-id': this.id,
+        // 'x-orama-version': version
       },
       signal: abortController?.signal
     }
 
     if (method === 'POST' && body !== undefined) {
-      requestOptions.body = Object.entries(body)
+      const b = body as any
+      b.version = version
+      b.id = this.id
+
+      requestOptions.body = Object.entries(b)
         .map(([key, value]) => `${key}=${encodeURIComponent(JSON.stringify(value))}`)
         .join('&')
     }
