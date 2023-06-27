@@ -1,7 +1,7 @@
-# Orama SDK
+# Orama Cloud Client
 
 ```js
-npm i @orama/client
+npm i @oramacloud/client
 ```
 
 ```js
