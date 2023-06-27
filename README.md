@@ -8,8 +8,8 @@ npm i @orama/client
 import { OramaClient } from '@orama/client'
 
 const client = new OramaClient({
-  endpoint: 'https://cloud.orama.run/index/a1s594-my-custom-endpoint',
-  api_key: 'CfJ1ZYbkTDNRRcKN5KlZGesdcdAKpJ5R'
+  endpoint: '<Your Orama Cloud Endpoint>',
+  api_key: '<Your Orama Cloud API Key>'
 })
 
 const results = await client.search({
