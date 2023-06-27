@@ -37,13 +37,13 @@ export class Collector {
       referer: typeof location !== 'undefined' ? location.toString() : undefined
     })
 
-    if (this.params && this.data.length >= this.config.flushSize) {
+    if ((this.params != null) && this.data.length >= this.config.flushSize) {
       this.flush()
     }
   }
 
   public flush (): void {
-    if (!this.params || this.data.length === 0) {
+    if ((this.params == null) || this.data.length === 0) {
       return
     }
 
@@ -62,11 +62,11 @@ export class Collector {
       // Because we use "application/x-www-form-urlencoded",
       // the browser doens't send the user agent automatically
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-      events: data,
+      events: data
     }
 
     navigator.sendBeacon?.(
-      this.params.endpoint + `?api-key=${this.config.api_key}`, 
+      this.params.endpoint + `?api-key=${this.config.api_key}`,
       JSON.stringify(body)
     )
   }
@@ -77,6 +77,6 @@ export class Collector {
 }
 
 export interface CollectorConstructor extends TelemetryConfig {
-  id: string,
-  api_key: string,
+  id: string
+  api_key: string
 }

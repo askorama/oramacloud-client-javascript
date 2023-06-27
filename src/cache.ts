@@ -4,7 +4,7 @@ import { hasLocalStorage } from './utils.js'
 type CacheMap<T = unknown> = Map<string, T>
 
 export class Cache<V = unknown> {
-  private cache: CacheMap<V>
+  private readonly cache: CacheMap<V>
   private readonly config: CacheConstructorParams
 
   constructor (config: CacheConstructorParams) {

@@ -1,4 +1,4 @@
-import { HeartBeatConfig } from "./types.js";
+import { HeartBeatConfig } from './types.js'
 
 export class HeartBeat {
   private intervalId?: number
@@ -7,12 +7,12 @@ export class HeartBeat {
 
   public start (): void {
     this.stop()
+    // @ts-expect-error - setInterval ID is actually a number
     this.intervalId = setInterval(this.beat.bind(this), this.params.frequency)
   }
 
   public stop (): void {
     if (this.intervalId) {
-        
       clearInterval(this.intervalId)
     }
   }

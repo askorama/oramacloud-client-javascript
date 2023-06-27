@@ -29,7 +29,7 @@ export class OramaClient {
         id: this.id,
         api_key: this.api_key,
         flushInterval: params.telemetry?.flushInterval ?? CONST.DEFAULT_TELEMETRY_FLUSH_INTERVAL,
-        flushSize: params.telemetry?.flushSize ?? CONST.DEFAULT_TELEMETRY_FLUSH_SIZE,
+        flushSize: params.telemetry?.flushSize ?? CONST.DEFAULT_TELEMETRY_FLUSH_SIZE
       }
       this.collector = Collector.create(telementryConfig)
     }
@@ -73,7 +73,7 @@ export class OramaClient {
       this.cache?.set(cacheKey, searchResults)
     }
 
-    if (this.collector) {
+    if (this.collector != null) {
       this.collector.add({
         rawSearchString: query.term,
         resultsCount: searchResults.hits.length,
@@ -91,7 +91,7 @@ export class OramaClient {
     this.heartbeat?.stop()
     this.heartbeat = new HeartBeat({
       ...config,
-      endpoint: this.endpoint + `/health?api-key=${this.api_key}`,
+      endpoint: this.endpoint + `/health?api-key=${this.api_key}`
     })
     this.heartbeat.start()
   }
@@ -100,7 +100,7 @@ export class OramaClient {
     this.heartbeat?.stop()
   }
 
-  private init() {
+  private init () {
     this.initPromise = this.fetch<OramaInitResponse>('init', 'GET')
       .then(b => {
         this.collector?.setParams({
@@ -113,14 +113,14 @@ export class OramaClient {
   }
 
   private async fetch<T = unknown> (path: Endpoint, method: Method, body?: object, abortController?: AbortController): Promise<T> {
-    if (abortController && abortController.signal.aborted) {
+    if ((abortController != null) && abortController.signal.aborted) {
       throw new Error('Request aborted')
     }
 
     const requestOptions: RequestInit = {
       method,
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/x-www-form-urlencoded'
         // Unfortunatelly we can't send this headers otherwise we should pay CORS preflight request
         // 'x-orama-instance-id': this.id,
         // 'x-orama-version': version
@@ -145,6 +145,6 @@ export class OramaClient {
 }
 
 export interface SearchConfig {
-  abortController?: AbortController,
+  abortController?: AbortController
   fresh?: boolean
 }
