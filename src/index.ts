@@ -9,7 +9,12 @@ import { Collector } from './collector.js'
 import { HeartBeat } from './heartbeat.js'
 import { version } from '../package.json'
 
-export class OramaClient {
+export interface SearchConfig {
+  abortController?: AbortController
+  fresh?: boolean
+}
+
+export default class OramaClient {
   private readonly id = cuid()
   private readonly api_key: string
   private readonly endpoint: string
@@ -142,9 +147,4 @@ export class OramaClient {
 
     return await res.json()
   }
-}
-
-export interface SearchConfig {
-  abortController?: AbortController
-  fresh?: boolean
 }
