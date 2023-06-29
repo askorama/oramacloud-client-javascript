@@ -1,7 +1,7 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig } from './types.js'
 import type { SearchParams, Results } from '@orama/orama'
 import { formatElapsedTime } from '@orama/orama/components'
-import cuid from 'cuid'
+import { createId } from '@paralleldrive/cuid2'
 
 import { Cache } from './cache.js'
 import * as CONST from './constants.js'
@@ -15,7 +15,7 @@ export interface SearchConfig {
 }
 
 export class OramaClient {
-  private readonly id = cuid()
+  private readonly id = createId()
   private readonly api_key: string
   private readonly endpoint: string
   private readonly collector?: Collector
