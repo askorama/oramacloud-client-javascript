@@ -1,24 +1,23 @@
 {
   "name": "@oramacloud/client",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "description": "Orama SDK for Node.js, Deno, and Browsers",
   "type": "module",
-  "main": "./dist/index.cjs.js",
+  "sideEffects": false,
+  "main": "./dist/cjs/index.js",
   "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
-      "default": "./dist/index.cjs.js",
-      "import": "./dist/index.esm.js",
-      "node": "./dist/index.cjs.js",
-      "require": "./dist/index.cjs.js",
-      "types": "./dist/src/index.d.ts"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
     }
   },
   "scripts": {
     "lint": "ts-standard --fix",
     "build": "rm -rf ./dist && concurrently \"npm run build:esm\" \"npm run build:cjs\" \"npm run build:ts\"",
-    "build:esm": "esbuild ./src/index.ts --bundle --minify --format=esm --outfile=./dist/index.esm.js",
-    "build:cjs": "esbuild ./src/index.ts --bundle --minify --format=cjs --outfile=./dist/index.cjs.js",
+    "build:esm": "esbuild ./src/index.ts --bundle --format=esm --outfile=./dist/esm/index.js",
+    "build:cjs": "esbuild ./src/index.ts --bundle --format=cjs --outfile=./dist/cjs/index.js",
     "build:ts": "tsc -p . --emitDeclarationOnly",
     "test": "echo \"Error: no test specified\" && exit 1",
     "serve:example": "esbuild src/index.ts --bundle --outfile=example/out.js --format=esm --watch --servedir=example"
