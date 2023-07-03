@@ -12,7 +12,7 @@ export class HeartBeat {
   }
 
   public stop (): void {
-    if (this.intervalId) {
+    if (this.intervalId !== undefined) {
       clearInterval(this.intervalId)
     }
   }

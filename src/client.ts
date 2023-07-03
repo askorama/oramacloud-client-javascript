@@ -58,9 +58,9 @@ export class OramaClient {
     let cached = false
 
     const shouldUseCache = config?.fresh !== true && this.cache?.has(cacheKey)
-    if (shouldUseCache) {
+    if (shouldUseCache === true && this.cache != null) {
       roundTripTime = 0
-      searchResults = this.cache!.get(cacheKey)!
+      searchResults = this.cache.get(cacheKey) as Results
       cached = true
     } else {
       const timeStart = Date.now()
@@ -105,7 +105,7 @@ export class OramaClient {
     this.heartbeat?.stop()
   }
 
-  private init () {
+  private init (): void {
     this.initPromise = this.fetch<OramaInitResponse>('init', 'GET')
       .then(b => {
         this.collector?.setParams({
@@ -118,7 +118,7 @@ export class OramaClient {
   }
 
   private async fetch<T = unknown> (path: Endpoint, method: Method, body?: object, abortController?: AbortController): Promise<T> {
-    if ((abortController != null) && abortController.signal.aborted) {
+    if (abortController?.signal.aborted === true) {
       throw new Error('Request aborted')
     }
 

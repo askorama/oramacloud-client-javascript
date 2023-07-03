@@ -1,5 +1,4 @@
 import type { CacheConfig, Optional } from './types.js'
-import { hasLocalStorage } from './utils.js'
 
 type CacheMap<T = unknown> = Map<string, T>
 
