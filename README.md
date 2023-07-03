@@ -5,7 +5,7 @@ npm i @oramacloud/client
 ```
 
 ```js
-import { OramaClient } from '@orama/client'
+import { OramaClient } from '@oramacloud/client'
 
 const client = new OramaClient({
   endpoint: '<Your Orama Cloud Endpoint>',
