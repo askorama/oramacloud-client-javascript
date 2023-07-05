@@ -15,7 +15,7 @@
   },
   "scripts": {
     "lint": "ts-standard --fix",
-    "build": "tsup src/index.ts --format cjs,esm,iife --dts --minify --sourcemap --clean",
+    "build": "tsup src/index.ts --format cjs,esm,iife --dts --minify --sourcemap --clean --global-name OramaClient",
     "test": "echo \"Error: no test specified\" && exit 1",
     "serve:example": "esbuild src/index.ts --bundle --outfile=example/out.js --format=esm --watch --servedir=example"
   },
