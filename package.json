@@ -11,7 +11,7 @@
     "require": "./dist/index.cjs",
     "import": "./dist/index.js",
     "types": "./dist/index.d.ts",
-    "browsers": "./dist/index.global.js"
+    "browser": "./dist/index.global.js"
   },
   "scripts": {
     "lint": "ts-standard --fix",
