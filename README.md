@@ -42,11 +42,6 @@ const results = await client.search({
 ```jsx
 import { useOramaCloud } from '@oramacloud/client/react'
 
-const client = new OramaClient({
-  endpoint: '<Your Orama Cloud Endpoint>',
-  api_key: '<Your Orama Cloud API Key>'
-})
-
 export function MyComponent() {
   const { useSearch } = useOramaCloud({
     endpoint: '<Your Orama Cloud Endpoint>',
@@ -66,6 +61,5 @@ export function MyComponent() {
       ))}
     </>
   )
-
 }
 ```

@@ -7,7 +7,17 @@ interface UseOramaProps {
   api_key: string
 }
 
-export function useOramaCloud (props: UseOramaProps) {
+interface UseOramaCloud {
+  ready: boolean
+  useSearch: (query: SearchParams) => UseSearch
+}
+
+interface UseSearch {
+  results: Nullable<Results>
+  error: Nullable<Error>
+}
+
+export function useOramaCloud (props: UseOramaProps): UseOramaCloud {
   const [client, setClient] = useState<Nullable<OramaClient>>(null)
 
   useEffect(() => {
@@ -20,14 +30,14 @@ export function useOramaCloud (props: UseOramaProps) {
 
   return {
     ready: client !== null,
-    useSearch: useSearch(client!)
+    useSearch: useSearch(client as OramaClient)
   }
 }
 
-function useSearch (client: OramaClient) {
+function useSearch (client: OramaClient): (query: SearchParams) => UseSearch {
   return (query: SearchParams) => {
-    const [results, setResults] = useState<Results | null>(null)
-    const [error, setError] = useState<Error | null>(null)
+    const [results, setResults] = useState<Nullable<Results>>(null)
+    const [error, setError] = useState<Nullable<Error>>(null)
 
     useEffect(() => {
       if (client !== null) {
