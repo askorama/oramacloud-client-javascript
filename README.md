@@ -35,3 +35,37 @@ const results = await client.search({
   offset: 1
 })
 ```
+
+## With React
+
+
+```jsx
+import { useOramaCloud } from '@oramacloud/client/react'
+
+const client = new OramaClient({
+  endpoint: '<Your Orama Cloud Endpoint>',
+  api_key: '<Your Orama Cloud API Key>'
+})
+
+export function MyComponent() {
+  const { useSearch } = useOramaCloud({
+    endpoint: '<Your Orama Cloud Endpoint>',
+    api_key: '<Your Orama Cloud API Key>'
+  })
+
+  const { results } = useSearch({
+    term: 'red leather shoes'
+  })
+
+  return (
+    <>
+      {results.hits.map((hit) => (
+        <div key={hit.id}>
+          <p>{hit.document.property}</p>
+        </div>
+      ))}
+    </>
+  )
+
+}
+```

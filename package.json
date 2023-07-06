@@ -1,6 +1,6 @@
 {
   "name": "@oramacloud/client",
-  "version": "1.0.0-beta.11",
+  "version": "1.0.0-beta.12",
   "description": "Orama SDK for Node.js, Deno, and Browsers",
   "type": "module",
   "sideEffects": false,
@@ -13,9 +13,17 @@
     "types": "./dist/index.d.ts",
     "browser": "./dist/index.global.js"
   },
+  "/react": {
+    "require": "./dist/react/index.cjs",
+    "import": "./dist/react/index.js",
+    "types": "./dist/react/index.d.ts",
+    "browser": "./dist/react/index.global.js"
+  },
   "scripts": {
     "lint": "ts-standard --fix",
-    "build": "tsup src/index.ts --format cjs,esm,iife --dts --minify --sourcemap --clean --global-name OramaClient",
+    "build": "npm run build:lib && npm run build:react",
+    "build:lib": "tsup src/index.ts --format cjs,esm,iife --dts --minify --sourcemap --clean --global-name OramaClient",
+    "build:react": "tsup src/react/index.ts --format cjs,esm,iife --dts --minify --sourcemap --clean --global-name useOramaCloud --outDir ./dist/react",
     "test": "echo \"Error: no test specified\" && exit 1",
     "serve:example": "esbuild src/index.ts --bundle --outfile=example/out.js --format=esm --watch --servedir=example"
   },
@@ -35,11 +43,12 @@
   "license": "ISC",
   "dependencies": {
     "@orama/orama": "^1.0.8",
-    "@paralleldrive/cuid2": "^2.2.1"
+    "@paralleldrive/cuid2": "^2.2.1",
+    "react": "^18.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.3.1",
-    "concurrently": "^8.2.0",
+    "@types/react": "^18.2.14",
     "esbuild": "0.18.5",
     "ts-standard": "^12.0.2",
     "tsup": "^7.1.0",
