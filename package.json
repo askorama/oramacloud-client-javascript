@@ -1,29 +1,30 @@
 {
   "name": "@oramacloud/client",
-  "version": "1.0.0-beta.13",
+  "version": "1.0.0-beta.14",
   "description": "Orama SDK for Node.js, Deno, and Browsers",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  ".": {
-    "require": "./dist/index.cjs",
-    "import": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "browser": "./dist/index.global.js"
-  },
-  "/react": {
-    "require": "./dist/react/index.cjs",
-    "import": "./dist/react/index.js",
-    "types": "./dist/react/index.d.ts",
-    "browser": "./dist/react/index.global.js"
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/index.global.js"
+    },
+    "./react": {
+      "require": "./dist/react/index.cjs",
+      "import": "./dist/react/index.js",
+      "types": "./dist/react/index.d.ts"
+    }
   },
   "scripts": {
     "lint": "ts-standard --fix",
     "build": "npm run build:lib && npm run build:react",
-    "build:lib": "tsup src/index.ts --format cjs,esm,iife --dts --minify --sourcemap --clean --global-name OramaClient",
-    "build:react": "tsup src/react/index.ts --format cjs,esm,iife --dts --minify --sourcemap --clean --global-name useOramaCloud --outDir ./dist/react",
+    "build:lib": "tsup --config tsup.lib.js",
+    "build:react": "tsup --config tsup.react.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "serve:example": "esbuild src/index.ts --bundle --outfile=example/out.js --format=esm --watch --servedir=example"
   },
