@@ -1,3 +1,4 @@
+import sendBeacon from './sendBeacon.js'
 import { HeartBeatConfig } from './types.js'
 
 export class HeartBeat {
@@ -18,7 +19,7 @@ export class HeartBeat {
   }
 
   private beat (): void {
-    navigator.sendBeacon?.(this.params.endpoint)
+    sendBeacon(this.params.endpoint)
   }
 }
 

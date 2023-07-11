@@ -1,6 +1,7 @@
 
 import type { SearchEvent, ICollector, TelemetryConfig } from './types.js'
 import pkg from '../package.json'
+import sendBeacon from './sendBeacon.js'
 
 type Data = object[]
 
@@ -65,14 +66,17 @@ export class Collector {
       events: data
     }
 
-    navigator.sendBeacon?.(
+    sendBeacon(
       this.params.endpoint + `?api-key=${this.config.api_key}`,
       JSON.stringify(body)
     )
   }
 
   private start (): void {
-    setInterval(this.flush.bind(this), this.config.flushInterval)
+    let interval = setInterval(this.flush.bind(this), this.config.flushInterval)
+    if (interval.unref != null) {
+      interval.unref()
+    }
   }
 }
 
