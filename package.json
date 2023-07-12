@@ -36,7 +36,8 @@
     "sdk"
   ],
   "files": [
-    "dist"
+    "dist",
+    "example/runkit.js"
   ],
   "author": {
     "name": "Michele Riva",
