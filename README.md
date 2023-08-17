@@ -2,6 +2,7 @@
 
 ## Install
 
+
 ```js
 npm i @oramacloud/client
 ```
@@ -110,4 +111,47 @@ onMounted(async () => {
   }
 })
 </script>
+```
+
+## With Svelte
+
+### Set up Orama Cloud singleton
+
+Create a orama.ts file in the src/lib folder to create a Orama Cloud Client instance that you’ll use throughout your application.
+
+```js
+import { OramaCloud } from '@oramacloud/client/svelte'
+
+export const orama = new OramaCloud({
+  apiKey: '<Your Orama Cloud API Key>',
+  endpoint: '<Your Orama Cloud Endpoint>'
+})
+
+```
+
+### Use the client instance in your component
+
+```jsx
+<script>
+import { orama } from '$lib/orama'
+import { onMount } from 'svelte';
+let oramaResults = null
+
+ onMount(async () => {
+  let { results, error } = await orama.search({
+   term: 'red',
+   limit: 5
+  });
+
+  oramaResults = results;
+ }) 
+</script>
+
+<div>
+ {#if oramaResults}
+  {#each oramaResults.hits as hit}
+   {hit.id}<br/>
+  {/each}
+ {/if}
+</div>
 ```

@@ -1,4 +1,4 @@
-import type { SearchParams } from '@orama/orama'
+import type { SearchParams, Results, Nullable } from '@orama/orama'
 
 export type Optional<T = unknown> = T | undefined
 
@@ -44,12 +44,17 @@ export interface HeartBeatConfig {
   frequency: number
 }
 
-export type Endpoint =
-  | 'search'
-  | 'init'
-  | 'info'
-  | 'health'
+export type Endpoint = 'search' | 'init' | 'info' | 'health'
 
-export type Method =
-  | 'GET'
-  | 'POST'
+export type Method = 'GET' | 'POST'
+
+export interface IOramaCloudData {
+  endpoint: string
+  apiKey: string
+}
+
+export interface IUseSearch {
+  ready: boolean
+  results: Nullable<Results>
+  error: Nullable<Error>
+}

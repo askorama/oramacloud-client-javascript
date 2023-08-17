@@ -25,7 +25,7 @@ export class OramaCloud {
     ready = true
 
     try {
-      const oramaResults = await this.client?.search(query)
+      const oramaResults = await this.client.search(query)
       results = oramaResults
     } catch (e: any) {
       error = e
