@@ -1,6 +1,7 @@
 # Orama Cloud Client
 
 ## Install
+
 ```js
 npm i @oramacloud/client
 ```
@@ -66,4 +67,50 @@ function Search() {
     </>
   )
 }
+```
+
+## With Vue
+
+### main.ts
+
+```ts
+import { oramaProvide } from '../../javascript-sdk/dist/vue'
+
+oramaProvide({
+  apiKey: 'AmXaJfsdKS5WY7qt5Qxvr8vw9etcQAsX',
+  endpoint: 'https://cloud.orama.run/index/test-data-qvccn5'
+})(app)
+```
+
+### Usage example
+
+```jsx
+<script setup>
+import { ref, watch } from 'vue'
+import { oramaInjection, useSearch } from '../../javascript-sdk/dist/vue'
+
+const clientData = oramaInjection()
+const searchResults = ref(null)
+const inputValue = ref('')
+
+
+watch(inputValue, async (oldValue, newValue) => {
+  const oramaResults = await useSearch({
+    clientData,
+    query: {
+      term: newValue,
+      limit: 5,
+    },
+  })
+
+  searchResults.value = oramaResults.results
+})
+</script>
+
+<template>
+  <input v-model="inputValue"/>
+  <li v-for="hit in searchResults?.hits" :key="hit.id">
+    {{ hit.id }}
+  </li>
+</template>
 ```
