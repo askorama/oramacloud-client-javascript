@@ -15,5 +15,5 @@
     "sourceMap": true,
     "moduleResolution": "nodenext"
   },
-  "include": ["src/*.ts", "src/*.tsx"]
+  "include": ["src"]
 }

@@ -73,7 +73,7 @@ export class Collector {
   }
 
   private start (): void {
-    let interval = setInterval(this.flush.bind(this), this.config.flushInterval)
+    const interval = setInterval(this.flush.bind(this), this.config.flushInterval)
     if (interval.unref != null) {
       interval.unref()
     }
