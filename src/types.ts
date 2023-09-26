@@ -18,11 +18,11 @@ export interface ICollector {
 }
 
 export interface OramaInitResponse {
-  orama: string
   deploymentID: string
   deploymentDatetime: string
   collectUrl: string
   index: string
+  pop: string
 }
 
 export interface IOramaClient {

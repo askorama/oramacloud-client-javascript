@@ -22,7 +22,7 @@ export class OramaClient {
   private readonly cache?: Cache<Results>
 
   private heartbeat?: HeartBeat
-  private initPromise?: Promise<void>
+  private initPromise?: Promise<OramaInitResponse | void>
 
   constructor (params: IOramaClient) {
     this.api_key = params.api_key
@@ -105,6 +105,17 @@ export class OramaClient {
     this.heartbeat?.stop()
   }
 
+  public getPop (): Promise<string> {
+    return this.initPromise!
+      .then(b => {
+        if (b == null) {
+          return ''
+        }
+
+        return b.pop
+      })
+  }
+
   private init (): void {
     this.initPromise = this.fetch<OramaInitResponse>('init', 'GET')
       .then(b => {
@@ -113,6 +124,8 @@ export class OramaClient {
           deploymentID: b.deploymentID,
           index: b.index
         })
+
+        return b
       })
       .catch(err => console.log(err))
   }
