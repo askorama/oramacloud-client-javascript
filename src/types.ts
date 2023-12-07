@@ -1,10 +1,10 @@
-import type { SearchParams } from '@orama/orama'
+import type { AnyOrama, SearchParams } from '@orama/orama'
 
 export type Optional<T = unknown> = T | undefined
 
 export interface SearchEvent {
   rawSearchString?: string
-  query: SearchParams
+  query: SearchParams<AnyOrama>
   resultsCount: number
   roundTripTime: number
   searchedAt: Date
@@ -49,7 +49,12 @@ export type Endpoint =
   | 'init'
   | 'info'
   | 'health'
+  | 'vector-search2'
 
 export type Method =
   | 'GET'
   | 'POST'
+
+export interface OramaError extends Error {
+  httpResponse?: Response
+}

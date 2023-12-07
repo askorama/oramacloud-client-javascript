@@ -6,7 +6,7 @@ const client = new OramaClient({
 })
 
 const results = await client.search({
-  term: 'red leather shoes',
+  term: 'red leather shoes'
 })
 
 console.log(results)

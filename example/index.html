@@ -1,42 +1,88 @@
 <html>
     <head>
         <title>Example</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <body>
 
         <div>
             <label>
-                <input type="text" id="endpoint" value="{{ENDPOINT}}" />
                 Endpoint
+                <input type="text" id="endpoint" value="{{ENDPOINT}}" />
             </label>
         </div>
         <div>
             <label>
-                <input type="text" id="apikey" value="foo" />
                 API Key
+                <input type="text" id="apikey" value="{{APIKEY}}" />
             </label>
         </div>
         <div>
             <label>
-                <input type="checkbox" id="withcache" value="withcache" />
                 With cache
+                <input type="checkbox" id="withcache" value="withcache" />
             </label>
         </div>
         <div>
             <label>
-                <input type="checkbox" id="withtelemetry" checked value="withtelemetry" />
                 With telemetry
+                <input type="checkbox" id="withtelemetry" checked value="withtelemetry" />
             </label>
         </div>
         <div>
             <label>
-                <input type="checkbox" id="withheartbeat" checked value="withheartbeat" />
                 With HeartBeat
+                <input type="checkbox" id="withheartbeat" checked value="withheartbeat" />
             </label>
         </div>
         <button id="create">Create</button>
 
+        <style>
+            #instance {
+                position: relative;
+            }
+            #instance > div > section {
+                display: none !important;
+            }
+            #instance > div:has(input:checked) > section {
+                display: block !important;
+            }
+            #instance > div > label {
+                float: left;
+            }
+            #instance > div > section {
+                float: left;
+                top: 45px;
+                left: 0px;
+                position: absolute;
+            }
+            #results {
+                clear: both;
+                position: relative;
+                top: 110px;
+            }
+        </style>
         <div id="instance" style="display: none;">
-            <input type="text" name="term" id="term" placeholder="search as you type"/>
+            <div>
+                <label>
+                    Search
+                    <input type="radio" id="search-tab" name="tab" checked />
+                </label>
+                <section>
+                    <input type="text" name="term" id="term" placeholder="search as you type"/>
+                </section>
+            </div>
+
+            <div>
+                <label>
+                    Search with Vector
+                    <input type="radio" id="search-tab" name="tab" />
+                </label>
+                <section>
+                    <input type="text" name="vector term" id="vector-term" placeholder="Search using similarity"/>
+                    <button id="vector-search">Search</button>
+                </section>
+            </div>
+
             <div id="results"></div>
         </div>
 
@@ -51,6 +97,9 @@
             const withtelemetry = document.getElementById('withtelemetry');
             const withheartbeat = document.getElementById('withheartbeat');
 
+            endpoint.value = localStorage.getItem('endpoint') || '{{ENDPOINT}}';
+            apikey.value = localStorage.getItem('apikey') || '{{APIKEY}}';
+
             let orama = undefined;
             create.addEventListener('click', e => {
                 orama = new OramaClient({
@@ -59,6 +108,10 @@
                     telemetry: withtelemetry.checked ? { } : false,
                     cache: withcache.checked ? { } : false,
                 })
+
+                localStorage.setItem('endpoint', endpoint.value);
+                localStorage.setItem('apikey', apikey.value);
+
                 if (withheartbeat.checked) {
                     orama.startHeartBeat({
                         frequency: 5000,
@@ -70,13 +123,11 @@
             const term = document.getElementById('term');
             const resultsDiv = document.getElementById('results');
 
-            term.addEventListener('input', async () => {
-                resultsDiv.innerHTML = '';
+            async function showResult(fn) {
+                resultsDiv.innerHTML = 'Searching....';
 
                 console.log('searching...')
-                const result = await orama.search({
-                    term: term.value
-                })
+                const result = await fn()
                 console.log('searched', result)
 
                 const { hits, count, elapsed } = result
@@ -85,21 +136,37 @@
 
                 resultsDiv.innerHTML = `
                     <div>Found ${count} results in ${elapsed.formatted}</div>
-                    <ul>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Score</th>
+                                <th>Document</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                         ${hits.map(hit => `
-                            <li>
-                                <p>${hit.id} - ${hit.score}</p>
-                                <pre>${JSON.stringify(hit.document)}</pre>
-                            </li>
+                            <tr>
+                                <td>${hit.id}</td>
+                                <td>${hit.score}</td>
+                                <td><pre>${JSON.stringify(hit.document)}</td>
+                            </tr>
                         `).join('')}
-                    </ul>
+                        </tbody>
+                    </table>
+                `
+            }
 
-`
-
-
+            term.addEventListener('input', async () => {
+                showResult(() => orama.search({ term: term.value }))
             })
-
-            
+        
+            const searchVector = document.getElementById('vector-search');
+            const vectorTerm = document.getElementById('vector-term');
+            searchVector.addEventListener('click', () => {
+                showResult(() => orama.vectorSearch({ term: vectorTerm.value }))
+            })
+        
         </script>
     </body>
 </html>

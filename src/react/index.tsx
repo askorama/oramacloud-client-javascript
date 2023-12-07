@@ -1,4 +1,4 @@
-import type { SearchParams, Results, Nullable } from '@orama/orama'
+import type { SearchParams, Results, Nullable, AnyDocument, AnyOrama } from '@orama/orama'
 import React, { useState, useEffect, createContext, useContext } from 'react'
 import { OramaClient } from '../client.js'
 
@@ -9,7 +9,7 @@ interface IOramaCloudContext {
 
 interface UseSearch {
   ready: boolean
-  results: Nullable<Results>
+  results: Nullable<Results<AnyDocument>>
   error: Nullable<Error>
 }
 
@@ -30,11 +30,11 @@ export const OramaCloud = ({ children, endpoint, apiKey }: {
   )
 }
 
-export function useSearch (query: SearchParams): UseSearch {
+export function useSearch (query: SearchParams<AnyOrama>): UseSearch {
   const { apiKey, endpoint } = useContext(OramaCloudContext)
   const [ready, setReady] = useState<boolean>(false)
   const [client, setClient] = useState<Nullable<OramaClient>>(null)
-  const [results, setResults] = useState<Nullable<Results>>(null)
+  const [results, setResults] = useState<Nullable<Results<AnyDocument>>>(null)
   const [error, setError] = useState<Nullable<Error>>(null)
 
   useEffect(() => {

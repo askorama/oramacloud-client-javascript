@@ -20,6 +20,7 @@ export class HeartBeat {
 
   private beat (): void {
     sendBeacon(this.params.endpoint)
+      ?.catch(err => console.log(err))
   }
 }
 

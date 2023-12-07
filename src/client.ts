@@ -1,5 +1,5 @@
-import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig } from './types.js'
-import type { SearchParams, Results } from '@orama/orama'
+import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError } from './types.js'
+import type { SearchParams, Results, AnyDocument, AnyOrama } from '@orama/orama'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
 
@@ -19,10 +19,10 @@ export class OramaClient {
   private readonly api_key: string
   private readonly endpoint: string
   private readonly collector?: Collector
-  private readonly cache?: Cache<Results>
+  private readonly cache?: Cache<Results<AnyDocument>>
 
   private heartbeat?: HeartBeat
-  private initPromise?: Promise<OramaInitResponse | void>
+  private initPromise?: Promise<OramaInitResponse | null>
 
   constructor (params: IOramaClient) {
     this.api_key = params.api_key
@@ -42,30 +42,74 @@ export class OramaClient {
     // Cache is enabled by default
     if (params.cache !== false) {
       const cacheParams = {}
-      this.cache = new Cache<Results>(cacheParams)
+      this.cache = new Cache<Results<AnyDocument>>(cacheParams)
     }
 
     this.init()
   }
 
-  public async search (query: SearchParams, config?: SearchConfig): Promise<Results> {
+  public async search (query: SearchParams<AnyOrama>, config?: SearchConfig): Promise<Results<AnyDocument>> {
     await this.initPromise
 
-    const cacheKey = JSON.stringify(query)
+    const cacheKey = 'search-' + JSON.stringify(query)
 
     let roundTripTime: number
-    let searchResults: Results
+    let searchResults: Results<AnyDocument>
     let cached = false
 
     const shouldUseCache = config?.fresh !== true && this.cache?.has(cacheKey)
     if (shouldUseCache === true && this.cache != null) {
       roundTripTime = 0
-      searchResults = this.cache.get(cacheKey) as Results
+      searchResults = this.cache.get(cacheKey) as Results<AnyDocument>
       cached = true
     } else {
       const timeStart = Date.now()
-      searchResults = await this.fetch<Results>(
+      searchResults = await this.fetch<Results<AnyDocument>>(
         'search',
+        'POST',
+        { q: query },
+        config?.abortController
+      )
+      const timeEnd = Date.now()
+
+      searchResults.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
+      roundTripTime = timeEnd - timeStart
+
+      this.cache?.set(cacheKey, searchResults)
+    }
+
+    if (this.collector != null) {
+      this.collector.add({
+        rawSearchString: query.term,
+        resultsCount: searchResults.hits.length,
+        roundTripTime,
+        query,
+        cached,
+        searchedAt: new Date()
+      })
+    }
+
+    return searchResults
+  }
+
+  public async vectorSearch (query: Pick<SearchParams<AnyOrama>, 'term' | 'threshold' | 'limit'>, config?: SearchConfig): Promise<Pick<Results<AnyDocument>, 'hits' | 'elapsed'>> {
+    await this.initPromise
+
+    const cacheKey = 'vectorSearch-' + JSON.stringify(query)
+
+    let roundTripTime: number
+    let searchResults: Results<AnyDocument>
+    let cached = false
+
+    const shouldUseCache = config?.fresh !== true && this.cache?.has(cacheKey)
+    if (shouldUseCache === true && this.cache != null) {
+      roundTripTime = 0
+      searchResults = this.cache.get(cacheKey) as Results<AnyDocument>
+      cached = true
+    } else {
+      const timeStart = Date.now()
+      searchResults = await this.fetch<Results<AnyDocument>>(
+        'vector-search2',
         'POST',
         { q: query },
         config?.abortController
@@ -105,15 +149,9 @@ export class OramaClient {
     this.heartbeat?.stop()
   }
 
-  public getPop (): Promise<string> {
-    return this.initPromise!
-      .then(b => {
-        if (b == null) {
-          return ''
-        }
-
-        return b.pop
-      })
+  public async getPop (): Promise<string> {
+    const g = await this.initPromise
+    return g?.pop ?? ''
   }
 
   private init (): void {
@@ -127,7 +165,10 @@ export class OramaClient {
 
         return b
       })
-      .catch(err => console.log(err))
+      .catch(err => {
+        console.log(err)
+        return null
+      })
   }
 
   private async fetch<T = unknown> (path: Endpoint, method: Method, body?: object, abortController?: AbortController): Promise<T> {
@@ -157,6 +198,12 @@ export class OramaClient {
     }
 
     const res: Response = await fetch(`${this.endpoint}/${path}?api-key=${this.api_key}`, requestOptions)
+
+    if (!res.ok) {
+      const error = new Error() as OramaError
+      error.httpResponse = res
+      throw error
+    }
 
     return await res.json()
   }

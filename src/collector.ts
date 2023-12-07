@@ -70,6 +70,7 @@ export class Collector {
       this.params.endpoint + `?api-key=${this.config.api_key}`,
       JSON.stringify(body)
     )
+      ?.catch(err => console.log(err))
   }
 
   private start (): void {
