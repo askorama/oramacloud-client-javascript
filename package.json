@@ -27,7 +27,7 @@
     }
   },
   "scripts": {
-    "lint": "ts-standard --fix",
+    "format": "bunx @biomejs/biome format src --write",
     "build": "npm run build:lib && npm run build:react",
     "build:lib": "tsup --config tsup.lib.js",
     "build:react": "tsup --config tsup.react.js",
@@ -58,6 +58,7 @@
     "vue": "^3.3.4"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.4.1",
     "@fastify/formbody": "^7.4.0",
     "@types/node": "^20.3.1",
     "@types/react": "^18.2.14",

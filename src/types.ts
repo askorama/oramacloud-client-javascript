@@ -44,17 +44,14 @@ export interface HeartBeatConfig {
   frequency: number
 }
 
-export type Endpoint =
-  | 'search'
-  | 'init'
-  | 'info'
-  | 'health'
-  | 'vector-search2'
+export type Endpoint = 'search' | 'init' | 'info' | 'health' | 'vector-search2'
 
-export type Method =
-  | 'GET'
-  | 'POST'
+export type Method = 'GET' | 'POST'
 
 export interface OramaError extends Error {
   httpResponse?: Response
+}
+
+export type IOramaProxy = {
+  api_key: string
 }
