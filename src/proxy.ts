@@ -3,20 +3,24 @@ import * as CONST from './constants.js'
 
 export class OramaProxy {
   private CSRFToken: string = ''
-  private ready = false
+  private ready: Promise<boolean>
   private readonly api_key: string
 
   constructor(params: IOramaProxy) {
     this.api_key = params.api_key
 
-    this.init()
-      .then(() => (this.ready = true))
-      .catch((err) => console.log(err))
+    this.ready = this.init()
+      .then(() => true)
+      .catch((err) => {
+        console.log(err)
+        return false
+      })
   }
 
   public async generateEmbeddings(text: string): Promise<number[]> {
-    if (!this.ready) {
-      console.log('OramaProxy is not ready yet')
+    const isReady = await this.ready
+    if (!isReady) {
+      console.log('OramaProxy had an error during the initialization')
       return []
     }
 
