@@ -6,7 +6,7 @@
 npm i @oramacloud/client
 ```
 
-## Usage
+## Integrating with Orama Cloud
 
 ```js
 import { OramaClient } from '@oramacloud/client'
@@ -34,6 +34,25 @@ const results = await client.search({
   },
   limit: 5,
   offset: 1
+})
+```
+
+## Integrating with Orama Secure Proxy
+
+```js
+import { OramaProxy } from '@oramacloud/client'
+
+const proxy = new OramaClient({
+  api_key: '<Your Orama Secure Proxy API Key>'
+})
+
+const embeddings = await proxy.generateEmbeddings({
+  query: 'red leather shoes',
+})
+
+await proxy.chat({
+  messages: [{ role: 'user', content: 'Say "hello world" in Italian' }],
+  onChunk: (chunk) => console.log(chunk)
 })
 ```
 
