@@ -19,6 +19,7 @@ export class OramaProxy {
 
   public async generateEmbeddings(text: string): Promise<number[]> {
     const isReady = await this.ready
+
     if (!isReady) {
       console.log('OramaProxy had an error during the initialization')
       return []
@@ -41,8 +42,11 @@ export class OramaProxy {
   }
 
   public async chat<T = unknown>(messages: T[], onChunk: (chunk: string) => any): Promise<void> {
-    if (!this.ready) {
-      console.log('OramaProxy is not ready yet')
+    const isReady = await this.ready
+
+    if (!isReady) {
+      console.log('OramaProxy had an error during the initialization')
+      return
     }
 
     const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_CHAT_ENDPOINT}?apiKey=${this.api_key}`

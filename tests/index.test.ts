@@ -1,4 +1,4 @@
-import { OramaClient } from '../src/index'
+import { OramaClient } from '../src/index.js'
 import t from 'node:test'
 import Fastify from 'fastify'
 import fFormBody from '@fastify/formbody'
@@ -41,7 +41,7 @@ await t.test('client', async t => {
     })
 
     const results = await client.vectorSearch({
-      term: 'foobar'
+      term: 'foobar',
     })
 
     assert.equal(0, results.hits.length)

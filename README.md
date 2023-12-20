@@ -92,7 +92,7 @@ function Search() {
 
 ### Set up Orama Cloud singleton
 
-Create a orama.ts file in the src folder to create a Orama Cloud Client instance that you’ll use throughout your application.
+Create an orama.ts file in the src folder to create an Orama Cloud Client instance that you’ll use throughout your application.
 
 ```ts
 import { OramaCloud } from '@oramacloud/client/vue'
