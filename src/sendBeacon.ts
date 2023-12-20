@@ -1,5 +1,4 @@
-
-export default function sendBeacon (endpoint: string, body?: string): Promise<Response> | undefined {
+export default function sendBeacon(endpoint: string, body?: string): Promise<Response> | undefined {
   if (typeof navigator !== 'undefined') {
     navigator.sendBeacon(endpoint, body)
     return
@@ -11,6 +10,8 @@ export default function sendBeacon (endpoint: string, body?: string): Promise<Re
     headers: {
       'Content-Type': 'application/json'
     }
-  })
-    .then(() => {}, e => console.log(e))
+  }).then(
+    () => {},
+    (e) => console.log(e)
+  )
 }

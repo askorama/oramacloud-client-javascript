@@ -24,7 +24,7 @@ export class OramaClient {
   private heartbeat?: HeartBeat
   private initPromise?: Promise<OramaInitResponse | null>
 
-  constructor (params: IOramaClient) {
+  constructor(params: IOramaClient) {
     this.api_key = params.api_key
     this.endpoint = params.endpoint
 
@@ -48,7 +48,7 @@ export class OramaClient {
     this.init()
   }
 
-  public async search (query: SearchParams<AnyOrama>, config?: SearchConfig): Promise<Results<AnyDocument>> {
+  public async search(query: SearchParams<AnyOrama>, config?: SearchConfig): Promise<Results<AnyDocument>> {
     await this.initPromise
 
     const cacheKey = 'search-' + JSON.stringify(query)
@@ -64,12 +64,7 @@ export class OramaClient {
       cached = true
     } else {
       const timeStart = Date.now()
-      searchResults = await this.fetch<Results<AnyDocument>>(
-        'search',
-        'POST',
-        { q: query },
-        config?.abortController
-      )
+      searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, config?.abortController)
       const timeEnd = Date.now()
 
       searchResults.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
@@ -92,7 +87,10 @@ export class OramaClient {
     return searchResults
   }
 
-  public async vectorSearch (query: Pick<SearchParams<AnyOrama>, 'term' | 'threshold' | 'limit'>, config?: SearchConfig): Promise<Pick<Results<AnyDocument>, 'hits' | 'elapsed'>> {
+  public async vectorSearch(
+    query: Pick<SearchParams<AnyOrama>, 'term' | 'threshold' | 'limit'>,
+    config?: SearchConfig
+  ): Promise<Pick<Results<AnyDocument>, 'hits' | 'elapsed'>> {
     await this.initPromise
 
     const cacheKey = 'vectorSearch-' + JSON.stringify(query)
@@ -108,12 +106,7 @@ export class OramaClient {
       cached = true
     } else {
       const timeStart = Date.now()
-      searchResults = await this.fetch<Results<AnyDocument>>(
-        'vector-search2',
-        'POST',
-        { q: query },
-        config?.abortController
-      )
+      searchResults = await this.fetch<Results<AnyDocument>>('vector-search2', 'POST', { q: query }, config?.abortController)
       const timeEnd = Date.now()
 
       searchResults.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
@@ -136,7 +129,7 @@ export class OramaClient {
     return searchResults
   }
 
-  public startHeartBeat (config: HeartBeatConfig): void {
+  public startHeartBeat(config: HeartBeatConfig): void {
     this.heartbeat?.stop()
     this.heartbeat = new HeartBeat({
       ...config,
@@ -145,18 +138,18 @@ export class OramaClient {
     this.heartbeat.start()
   }
 
-  public stopHeartBeat (): void {
+  public stopHeartBeat(): void {
     this.heartbeat?.stop()
   }
 
-  public async getPop (): Promise<string> {
+  public async getPop(): Promise<string> {
     const g = await this.initPromise
     return g?.pop ?? ''
   }
 
-  private init (): void {
+  private init(): void {
     this.initPromise = this.fetch<OramaInitResponse>('init', 'GET')
-      .then(b => {
+      .then((b) => {
         this.collector?.setParams({
           endpoint: b.collectUrl,
           deploymentID: b.deploymentID,
@@ -165,13 +158,13 @@ export class OramaClient {
 
         return b
       })
-      .catch(err => {
+      .catch((err) => {
         console.log(err)
         return null
       })
   }
 
-  private async fetch<T = unknown> (path: Endpoint, method: Method, body?: object, abortController?: AbortController): Promise<T> {
+  private async fetch<T = unknown>(path: Endpoint, method: Method, body?: object, abortController?: AbortController): Promise<T> {
     if (abortController?.signal.aborted === true) {
       throw new Error('Request aborted')
     }

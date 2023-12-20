@@ -17,7 +17,7 @@ export class OramaCloud {
   endpoint: string
   client: OramaClient
 
-  constructor (clientData: IOramaCloudData) {
+  constructor(clientData: IOramaCloudData) {
     this.apiKey = clientData.apiKey
     this.endpoint = clientData.endpoint
     try {
@@ -27,7 +27,7 @@ export class OramaCloud {
     }
   }
 
-  async search (query: SearchParams<AnyOrama>): Promise<UseSearch> {
+  async search(query: SearchParams<AnyOrama>): Promise<UseSearch> {
     let ready = false
     let results: Nullable<Results<AnyDocument>> = null
     let error: Nullable<Error> = null

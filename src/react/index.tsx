@@ -18,19 +18,19 @@ const OramaCloudContext = createContext<IOramaCloudContext>({
   apiKey: ''
 })
 
-export const OramaCloud = ({ children, endpoint, apiKey }: {
+export const OramaCloud = ({
+  children,
+  endpoint,
+  apiKey
+}: {
   children: React.ReactNode
   endpoint: string
   apiKey: string
 }): JSX.Element => {
-  return (
-    <OramaCloudContext.Provider value={{ endpoint, apiKey }}>
-      {children}
-    </OramaCloudContext.Provider>
-  )
+  return <OramaCloudContext.Provider value={{ endpoint, apiKey }}>{children}</OramaCloudContext.Provider>
 }
 
-export function useSearch (query: SearchParams<AnyOrama>): UseSearch {
+export function useSearch(query: SearchParams<AnyOrama>): UseSearch {
   const { apiKey, endpoint } = useContext(OramaCloudContext)
   const [ready, setReady] = useState<boolean>(false)
   const [client, setClient] = useState<Nullable<OramaClient>>(null)
@@ -44,9 +44,7 @@ export function useSearch (query: SearchParams<AnyOrama>): UseSearch {
 
   useEffect(() => {
     if (client !== null) {
-      client.search(query)
-        .then(setResults)
-        .catch(setError)
+      client.search(query).then(setResults).catch(setError)
     }
   }, [client, query])
 
