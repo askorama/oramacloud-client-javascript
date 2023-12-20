@@ -88,7 +88,7 @@ export class OramaProxy {
     })
 
     const data = await response.json()
-
+    console.log({ data })
     this.CSRFToken = data.csrfToken
   }
 
