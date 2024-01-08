@@ -37,7 +37,7 @@ const results = await client.search({
 })
 ```
 
-## Integrating with Orama Secure Proxy
+## Generating embeddings via the Secure Proxy
 
 ```js
 import { OramaProxy } from '@oramacloud/client'
@@ -46,14 +46,63 @@ const proxy = new OramaClient({
   api_key: '<Your Orama Secure Proxy API Key>'
 })
 
-const embeddings = await proxy.generateEmbeddings({
-  query: 'red leather shoes',
+const embeddings = await proxy.generateEmbeddings('red leather shoes', 'openai/text-embedding-ada-002')
+
+console.log(embeddings)
+// [-0.019633075, -0.00820422, -0.013555876, -0.011825735, 0.006641511, -0.012948156, ...]
+```
+
+## Generating chat completions via the Secure Proxy
+
+You can generate chat completions via the Secure Proxy in two different ways:
+
+### Returning a single string
+
+```js
+import { OramaProxy } from '@oramacloud/client'
+
+const proxy = new OramaClient({
+  api_key: '<Your Orama Secure Proxy API Key>'
 })
 
-await proxy.chat({
-  messages: [{ role: 'user', content: 'Say "hello world" in Italian' }],
-  onChunk: (chunk) => console.log(chunk)
+const chatParams = {
+  model 'gpt-4',
+  messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
+}
+
+const response = await proxy.chat(chatParams)
+console.log(response)
+
+// "Michael Scott is a fictional character from the television show "The Office" (US version) ..."
+```
+
+### Returning a stream (via async iterators)
+
+```js
+import { OramaProxy } from '@oramacloud/client'
+
+const proxy = new OramaClient({
+  api_key: '<Your Orama Secure Proxy API Key>'
 })
+
+const chatParams = {
+  model 'gpt-4',
+  messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
+}
+
+for await (const message of proxy.chatStream(chatParams)) {
+  console.log(message)
+}
+
+// Michael
+// Scott is
+// a fictional
+//  character from the
+//  television show 
+// "The
+// Office" (US
+// version)
+// ...
 ```
 
 ## With React
