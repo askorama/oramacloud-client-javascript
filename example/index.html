@@ -3,53 +3,20 @@
         <title>Example</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <body>
-
-        <div>
-            <label>
-                Endpoint
-                <input type="text" id="endpoint" value="{{ENDPOINT}}" />
-            </label>
-        </div>
-        <div>
-            <label>
-                API Key
-                <input type="text" id="apikey" value="{{APIKEY}}" />
-            </label>
-        </div>
-        <div>
-            <label>
-                With cache
-                <input type="checkbox" id="withcache" value="withcache" />
-            </label>
-        </div>
-        <div>
-            <label>
-                With telemetry
-                <input type="checkbox" id="withtelemetry" checked value="withtelemetry" />
-            </label>
-        </div>
-        <div>
-            <label>
-                With HeartBeat
-                <input type="checkbox" id="withheartbeat" checked value="withheartbeat" />
-            </label>
-        </div>
-        <button id="create">Create</button>
-
         <style>
-            #instance {
+            .switcher {
                 position: relative;
             }
-            #instance > div > section {
+            .switcher > div > section {
                 display: none !important;
             }
-            #instance > div:has(input:checked) > section {
+            .switcher > div:has( > label > :checked) > section {
                 display: block !important;
             }
-            #instance > div > label {
+            .switcher > div > label {
                 float: left;
             }
-            #instance > div > section {
+            .switcher > div > section {
                 float: left;
                 top: 45px;
                 left: 0px;
@@ -61,33 +28,101 @@
                 top: 110px;
             }
         </style>
-        <div id="instance" style="display: none;">
+        <div class="switcher" id="type">
             <div>
                 <label>
-                    Search
-                    <input type="radio" id="search-tab" name="tab" checked />
+                    Search instance
+                    <input type="radio" id="search-tab" name="type-tab" checked />
                 </label>
                 <section>
-                    <input type="text" name="term" id="term" placeholder="search as you type"/>
+
+                    <div>
+                        <label>
+                            Endpoint
+                            <input type="text" id="endpoint" value="{{ENDPOINT}}" />
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            API Key
+                            <input type="text" id="apikey" value="{{APIKEY}}" />
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            With cache
+                            <input type="checkbox" id="withcache" value="withcache" />
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            With telemetry
+                            <input type="checkbox" id="withtelemetry" checked value="withtelemetry" />
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            With HeartBeat
+                            <input type="checkbox" id="withheartbeat" checked value="withheartbeat" />
+                        </label>
+                    </div>
+                    <button id="create">Create</button>
+            
+
+                    <div class="switcher" id="instance" style="display: none;">
+                        <div>
+                            <label>
+                                Search fulltext
+                                <input type="radio" id="search-tab" name="search-type-tab" checked />
+                            </label>
+                            <section>
+                                <input type="text" name="term" id="term" placeholder="search as you type"/>
+                            </section>
+                        </div>
+
+                        <div>
+                            <label>
+                                Search with Vector
+                                <input type="radio" id="search-tab" name="search-type-tab" />
+                            </label>
+                            <section>
+                                <input type="text" name="vector term" id="vector-term" placeholder="Search using similarity"/>
+                                <button id="vector-search">Search</button>
+                            </section>
+                        </div>
+
+                        <div id="results"></div>
+                    </div>
                 </section>
             </div>
 
             <div>
                 <label>
-                    Search with Vector
-                    <input type="radio" id="search-tab" name="tab" />
+                    Proxy instance
+                    <input type="radio" id="proxy-tab" name="type-tab" />
                 </label>
                 <section>
-                    <input type="text" name="vector term" id="vector-term" placeholder="Search using similarity"/>
-                    <button id="vector-search">Search</button>
+                    <div>
+                        <label>
+                            API Key
+                            <input type="text" id="proxy-apikey" value="{{APIKEY}}" />
+                        </label>
+                        <button id="proxy-create">Create Proxy</button>
+                    </div>
+                    <section id="proxy-instance" style="display: none;">
+                        <label>
+                            API Key
+                            <input type="text" id="message-text-proxy" value="{{APIKEY}}" />
+                        </label>
+                        <button id="proxy-send">Send</button>
+                        <pre><code id="proxy-response"></code></pre>
+                    </section>
                 </section>
             </div>
-
-            <div id="results"></div>
         </div>
 
         <script type="module" type="text/javascript">
-            import { OramaClient } from './out.js';
+            import { OramaClient, OramaProxy } from './out.js';
             
             const endpoint = document.getElementById('endpoint');
             const apikey = document.getElementById('apikey');
@@ -96,9 +131,16 @@
             const withcache = document.getElementById('withcache');
             const withtelemetry = document.getElementById('withtelemetry');
             const withheartbeat = document.getElementById('withheartbeat');
+            const proxyapikey = document.getElementById('proxy-apikey');
+            const proxycreate = document.getElementById('proxy-create');
+            const proxyInstance = document.getElementById('proxy-instance');
+            const proxyMessage = document.getElementById('message-text-proxy');
+            const proxySend = document.getElementById('proxy-send');
+            const proxyResponse = document.getElementById('proxy-response');
 
             endpoint.value = localStorage.getItem('endpoint') || '{{ENDPOINT}}';
             apikey.value = localStorage.getItem('apikey') || '{{APIKEY}}';
+            proxyapikey.value = localStorage.getItem('proxyapikey') || '{{APIKEY}}';
 
             let orama = undefined;
             create.addEventListener('click', e => {
@@ -118,6 +160,17 @@
                     })
                 }
                 instance.style.display = 'block';
+            })
+
+            let oramaProxyInstance = undefined;
+            proxycreate.addEventListener('click', e => {
+                oramaProxyInstance = new OramaProxy({
+                    api_key: proxyapikey.value,
+                })
+
+                localStorage.setItem('proxyapikey', proxyapikey.value);
+
+                proxyInstance.style.display = 'block';
             })
 
             const term = document.getElementById('term');
@@ -167,6 +220,25 @@
                 showResult(() => orama.vectorSearch({ term: vectorTerm.value }))
             })
         
+            proxySend.addEventListener('click', async () => {
+                proxyResponse.innerHTML = 'Sending...<br/><pre>'
+
+                const response = oramaProxyInstance.chatStream({
+                    messages: [
+                        {
+                            role: 'user',
+                            content: proxyMessage.value,
+                        }
+                    ],
+                    model: 'openai/gpt-4'
+                })
+
+                for await (const chunk of response) {
+                    proxyResponse.innerHTML += chunk
+                }
+                
+                proxyResponse.innerHTML += '</pre><br/>Done'
+            })
         </script>
     </body>
 </html>
