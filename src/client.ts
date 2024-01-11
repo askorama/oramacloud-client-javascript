@@ -14,6 +14,13 @@ export interface SearchConfig {
   fresh?: boolean
 }
 
+export type SearchMode =
+  | 'fulltext'
+  | 'vector'
+  | 'hybrid' 
+
+export type ClientSearchParams = SearchParams<AnyOrama> & { mode: SearchMode  }
+
 export class OramaClient {
   private readonly id = createId()
   private readonly api_key: string
@@ -48,7 +55,7 @@ export class OramaClient {
     this.init()
   }
 
-  public async search(query: SearchParams<AnyOrama>, config?: SearchConfig): Promise<Results<AnyDocument>> {
+  public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Results<AnyDocument>> {
     await this.initPromise
 
     const cacheKey = 'search-' + JSON.stringify(query)
