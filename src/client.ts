@@ -58,7 +58,7 @@ export class OramaClient {
   public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Results<AnyDocument>> {
     await this.initPromise
 
-    const cacheKey = 'search-' + JSON.stringify(query)
+    const cacheKey = `search-${JSON.stringify(query)}`
 
     let roundTripTime: number
     let searchResults: Results<AnyDocument>
@@ -95,12 +95,12 @@ export class OramaClient {
   }
 
   public async vectorSearch(
-    query: Pick<SearchParams<AnyOrama>, 'term' | 'threshold' | 'limit'>,
+    query: ClientSearchParams,
     config?: SearchConfig
   ): Promise<Pick<Results<AnyDocument>, 'hits' | 'elapsed'>> {
     await this.initPromise
 
-    const cacheKey = 'vectorSearch-' + JSON.stringify(query)
+    const cacheKey = `vectorSearch-${JSON.stringify(query)}`
 
     let roundTripTime: number
     let searchResults: Results<AnyDocument>
@@ -188,7 +188,8 @@ export class OramaClient {
     }
 
     if (method === 'POST' && body !== undefined) {
-      const b = body as any
+      // biome-ignore lint/suspicious/noExplicitAny: keep any for now
+      const  b = body as any
       b.version = version
       b.id = this.id
 

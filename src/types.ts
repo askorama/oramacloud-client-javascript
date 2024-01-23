@@ -1,10 +1,10 @@
-import type { AnyOrama, SearchParams } from '@orama/orama'
+import type { ClientSearchParams } from '../src/client.js'
 
 export type Optional<T = unknown> = T | undefined
 
 export interface SearchEvent {
   rawSearchString?: string
-  query: SearchParams<AnyOrama>
+  query: ClientSearchParams
   resultsCount: number
   roundTripTime: number
   searchedAt: Date

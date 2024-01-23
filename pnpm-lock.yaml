@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@orama/orama':
-    specifier: ^2.0.0-beta.9
-    version: 2.0.0-beta.9
+    specifier: ^2.0.1
+    version: 2.0.1
   '@paralleldrive/cuid2':
     specifier: ^2.2.1
     version: 2.2.1
@@ -718,8 +718,8 @@ packages:
       fastq: 1.15.0
     dev: true
 
-  /@orama/orama@2.0.0-beta.9:
-    resolution: {integrity: sha512-jT9UfHEw1BVlkopY8+SPbriftEQdw/ika9u5qtRBxgGTYMDl/wNy9Oht/8FSpw7LnsiHG3NRwwJ6LrutWKw8Yw==}
+  /@orama/orama@2.0.1:
+    resolution: {integrity: sha512-9HUHToE93yvDGcmnEELNynG4kmzSrhSElnfLN9UFPO9ZwfHVPp1NvALli7rm1F/Bqdgi6YM6dEXKmPJUQnwiHg==}
     engines: {node: '>= 16.0.0'}
     dev: false
 

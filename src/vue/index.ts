@@ -1,5 +1,5 @@
-import type { SearchParams, Results, Nullable, AnyDocument, AnyOrama } from '@orama/orama'
-import { OramaClient } from '../client.js'
+import type { Results, Nullable, AnyDocument } from '@orama/orama'
+import type { OramaClient, ClientSearchParams } from '../client.js'
 
 interface IOramaCloudData {
   endpoint: string
@@ -27,7 +27,7 @@ export class OramaCloud {
     }
   }
 
-  async search(query: SearchParams<AnyOrama>): Promise<UseSearch> {
+  async search(query: ClientSearchParams): Promise<UseSearch> {
     let ready = false
     let results: Nullable<Results<AnyDocument>> = null
     let error: Nullable<Error> = null
