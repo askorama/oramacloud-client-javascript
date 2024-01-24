@@ -13,8 +13,6 @@ export type ChatParams = {
 
 const OPENAI_EMBEDDINGS_MODEL_ADA = 'text-embedding-ada-002'
 const ORAMA_EMBEDDINGS_MODEL_GTE_SMALL = 'gte-small'
-const ORAMA_EMBEDDINGS_MODEL_MINILM_L6 = 'MiniLM-L6-v2'
-const ORAMA_EMBEDDINGS_MODEL_MINILM_L12 = 'MiniLM-L12-v2'
 
 const OPENAI_CHAT_MODEL_GPT4_1106_PREVIEW = 'gpt-4-1106-preview'
 const OPENAI_CHAT_MODEL_GPT4 = 'gpt-4'
@@ -24,9 +22,6 @@ const OPENAI_CHAT_MODEL_GPT3_3_5_TURBO_16K = 'gpt-3.5-turbo-16k'
 const embeddingsModels = {
   [`openai/${OPENAI_EMBEDDINGS_MODEL_ADA}`]: `openai/${OPENAI_EMBEDDINGS_MODEL_ADA}`,
   [`orama/${ORAMA_EMBEDDINGS_MODEL_GTE_SMALL}`]: `orama/${ORAMA_EMBEDDINGS_MODEL_GTE_SMALL}`,
-  // Will be available soon
-  // [`orama/${ORAMA_EMBEDDINGS_MODEL_MINILM_L6}`]: ORAMA_EMBEDDINGS_MODEL_MINILM_L6,
-  // [`orama/${ORAMA_EMBEDDINGS_MODEL_MINILM_L12}`]: ORAMA_EMBEDDINGS_MODEL_MINILM_L12
 }
 
 const chatModels = {
@@ -68,11 +63,17 @@ export class OramaProxy {
       body: new URLSearchParams({
         query: text,
         csrf: this.CSRFToken,
-        model: embeddingsModels[model]
+        model: embeddingsModels[model],
       }).toString()
     })
 
-    return response.json()
+    let embeddings = await response.json()
+
+    if (embeddings.length === 1) {
+      embeddings = embeddings[0]
+    }
+
+    return embeddings
   }
 
   public async chat(params: ChatParams): Promise<string> {
