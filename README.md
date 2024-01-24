@@ -2,7 +2,7 @@
 
 ## Install
 
-```js
+```sh
 npm i @oramacloud/client
 ```
 
