@@ -17,9 +17,14 @@ export interface SearchConfig {
 export type SearchMode =
   | 'fulltext'
   | 'vector'
-  | 'hybrid' 
+  | 'hybrid'
 
-export type ClientSearchParams = SearchParams<AnyOrama> & { mode: SearchMode  }
+type AdditionalSearchParams = {
+  mode: SearchMode
+  returning?: string[]
+}
+
+export type ClientSearchParams = SearchParams<AnyOrama> & AdditionalSearchParams
 
 export class OramaClient {
   private readonly id = createId()
