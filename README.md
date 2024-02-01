@@ -71,7 +71,7 @@ const proxy = new OramaClient({
 })
 
 const chatParams = {
-  model 'openai/gpt-4',
+  model: 'openai/gpt-4',
   messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
 }
 
@@ -98,7 +98,7 @@ const proxy = new OramaClient({
 })
 
 const chatParams = {
-  model 'openai/gpt-4',
+  model: 'openai/gpt-4',
   messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
 }
 
