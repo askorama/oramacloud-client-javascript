@@ -1,6 +1,8 @@
 export default function sendBeacon(endpoint: string, body?: string): Promise<Response> | undefined {
   if (typeof navigator !== 'undefined') {
-    navigator.sendBeacon(endpoint, body)
+    if (typeof navigator.sendBeacon !== 'undefined') {
+      navigator.sendBeacon(endpoint, body)
+    }
     return
   }
 
