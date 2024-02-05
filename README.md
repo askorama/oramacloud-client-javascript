@@ -54,8 +54,12 @@ console.log(embeddings)
 
 Available models:
 
-- `openai/text-embedding-ada-002`. 1536 dimensions, proxied to OpenAI
 - `orama/gte-small`. 384 dimensions, operated by Orama Cloud (preferred)
+- `orama/gte-medium`. 768 dimensions, operated by Orama Cloud
+- `orama/gte-large`. 1024 dimensions, operated by Orama Cloud
+- `openai/text-embedding-ada-002`. 1536 dimensions, proxied to OpenAI
+- `openai/text-embedding-3-small`. 1536 dimensions, proxied to OpenAI
+- `openai/text-embedding-3-large`. 3072 dimensions, proxied to OpenAI
 
 ## Generating chat completions via the Secure Proxy
 

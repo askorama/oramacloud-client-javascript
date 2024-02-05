@@ -12,7 +12,11 @@ export type ChatParams = {
 }
 
 const OPENAI_EMBEDDINGS_MODEL_ADA = 'text-embedding-ada-002'
+const OPENAI_EMBEDDINGS_MODEL_3_SMALL = 'text-embedding-3-small'
+const OPENAI_EMBEDDINGS_MODEL_3_LARGE = 'text-embedding-3-large'
 const ORAMA_EMBEDDINGS_MODEL_GTE_SMALL = 'gte-small'
+const ORAMA_EMBEDDINGS_MODEL_GTE_MEDIUM = 'gte-medium'
+const ORAMA_EMBEDDINGS_MODEL_GTE_LARGE = 'gte-large'
 
 const OPENAI_CHAT_MODEL_GPT4_1106_PREVIEW = 'gpt-4-1106-preview'
 const OPENAI_CHAT_MODEL_GPT4 = 'gpt-4'
@@ -21,6 +25,10 @@ const OPENAI_CHAT_MODEL_GPT3_3_5_TURBO_16K = 'gpt-3.5-turbo-16k'
 
 const embeddingsModels = {
   [`openai/${OPENAI_EMBEDDINGS_MODEL_ADA}`]: `openai/${OPENAI_EMBEDDINGS_MODEL_ADA}`,
+  [`openai/${OPENAI_EMBEDDINGS_MODEL_3_SMALL}`]: `openai/${OPENAI_EMBEDDINGS_MODEL_3_SMALL}`,
+  [`openai/${OPENAI_EMBEDDINGS_MODEL_3_LARGE}`]: `openai/${OPENAI_EMBEDDINGS_MODEL_3_LARGE}`,
+  [`orama/${ORAMA_EMBEDDINGS_MODEL_GTE_LARGE}`]: `orama/${ORAMA_EMBEDDINGS_MODEL_GTE_LARGE}`,
+  [`orama/${ORAMA_EMBEDDINGS_MODEL_GTE_MEDIUM}`]: `orama/${ORAMA_EMBEDDINGS_MODEL_GTE_MEDIUM}`,
   [`orama/${ORAMA_EMBEDDINGS_MODEL_GTE_SMALL}`]: `orama/${ORAMA_EMBEDDINGS_MODEL_GTE_SMALL}`,
 }
 
