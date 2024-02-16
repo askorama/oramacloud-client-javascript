@@ -12,12 +12,10 @@ import { version } from '../package.json'
 export interface SearchConfig {
   abortController?: AbortController
   fresh?: boolean
+  debounce?: number
 }
 
-export type SearchMode =
-  | 'fulltext'
-  | 'vector'
-  | 'hybrid'
+export type SearchMode = 'fulltext' | 'vector' | 'hybrid'
 
 type AdditionalSearchParams = {
   mode: SearchMode
@@ -32,6 +30,8 @@ export class OramaClient {
   private readonly endpoint: string
   private readonly collector?: Collector
   private readonly cache?: Cache<Results<AnyDocument>>
+  private abortController?: AbortController
+  private searchDebounceTimer?: number
 
   private heartbeat?: HeartBeat
   private initPromise?: Promise<OramaInitResponse | null>
@@ -61,48 +61,81 @@ export class OramaClient {
   }
 
   public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Results<AnyDocument>> {
-    await this.initPromise
+    if (this.abortController) {
+      this.abortController.abort()
+    }
 
+    this.abortController = new AbortController()
+
+    await this.initPromise
     const cacheKey = `search-${JSON.stringify(query)}`
 
-    let roundTripTime: number
     let searchResults: Results<AnyDocument>
+    let roundTripTime: number
     let cached = false
-
     const shouldUseCache = config?.fresh !== true && this.cache?.has(cacheKey)
-    if (shouldUseCache === true && this.cache != null) {
+
+    const performSearch = async () => {
+      try {
+        const timeStart = Date.now()
+        searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, this.abortController)
+        const timeEnd = Date.now()
+        searchResults.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
+        roundTripTime = timeEnd - timeStart
+        this.cache?.set(cacheKey, searchResults)
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Search request failed', error)
+          throw error
+        }
+      }
+
+      if (this.collector) {
+        this.collector.add({
+          rawSearchString: query.term,
+          resultsCount: searchResults.hits.length,
+          roundTripTime,
+          query,
+          cached,
+          searchedAt: new Date()
+        })
+      }
+
+      return searchResults
+    }
+
+    if (shouldUseCache && this.cache) {
       roundTripTime = 0
       searchResults = this.cache.get(cacheKey) as Results<AnyDocument>
       cached = true
     } else {
-      const timeStart = Date.now()
-      searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, config?.abortController)
-      const timeEnd = Date.now()
-
-      searchResults.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
-      roundTripTime = timeEnd - timeStart
-
-      this.cache?.set(cacheKey, searchResults)
-    }
-
-    if (this.collector != null) {
-      this.collector.add({
-        rawSearchString: query.term,
-        resultsCount: searchResults.hits.length,
-        roundTripTime,
-        query,
-        cached,
-        searchedAt: new Date()
-      })
+      if (config?.debounce) {
+        return new Promise((resolve, reject) => {
+          clearTimeout(this.searchDebounceTimer)
+          this.searchDebounceTimer = window.setTimeout(
+            async () => {
+              try {
+                await performSearch()
+                resolve(searchResults)
+              } catch (error: any) {
+                if (error.name !== 'AbortError') {
+                  console.error('Search request failed', error)
+                  reject(error)
+                }
+              }
+            },
+            config?.debounce || 300
+          )
+        })
+      } else {
+        return performSearch()
+      }
     }
 
     return searchResults
   }
 
-  public async vectorSearch(
-    query: ClientSearchParams,
-    config?: SearchConfig
-  ): Promise<Pick<Results<AnyDocument>, 'hits' | 'elapsed'>> {
+  public async vectorSearch(query: ClientSearchParams, config?: SearchConfig): Promise<Pick<Results<AnyDocument>, 'hits' | 'elapsed'>> {
     await this.initPromise
 
     const cacheKey = `vectorSearch-${JSON.stringify(query)}`
@@ -194,7 +227,7 @@ export class OramaClient {
 
     if (method === 'POST' && body !== undefined) {
       // biome-ignore lint/suspicious/noExplicitAny: keep any for now
-      const  b = body as any
+      const b = body as any
       b.version = version
       b.id = this.id
 

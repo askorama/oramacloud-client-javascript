@@ -29,7 +29,7 @@ const embeddingsModels = {
   [`openai/${OPENAI_EMBEDDINGS_MODEL_3_LARGE}`]: `openai/${OPENAI_EMBEDDINGS_MODEL_3_LARGE}`,
   [`orama/${ORAMA_EMBEDDINGS_MODEL_GTE_LARGE}`]: `orama/${ORAMA_EMBEDDINGS_MODEL_GTE_LARGE}`,
   [`orama/${ORAMA_EMBEDDINGS_MODEL_GTE_MEDIUM}`]: `orama/${ORAMA_EMBEDDINGS_MODEL_GTE_MEDIUM}`,
-  [`orama/${ORAMA_EMBEDDINGS_MODEL_GTE_SMALL}`]: `orama/${ORAMA_EMBEDDINGS_MODEL_GTE_SMALL}`,
+  [`orama/${ORAMA_EMBEDDINGS_MODEL_GTE_SMALL}`]: `orama/${ORAMA_EMBEDDINGS_MODEL_GTE_SMALL}`
 }
 
 const chatModels = {
@@ -71,7 +71,7 @@ export class OramaProxy {
       body: new URLSearchParams({
         query: text,
         csrf: this.CSRFToken,
-        model: embeddingsModels[model],
+        model: embeddingsModels[model]
       }).toString()
     })
 
@@ -106,18 +106,20 @@ export class OramaProxy {
 
     let messages = params.messages
     if (this.publicKey) {
-      messages = await Promise.all(messages.map(async (message) => {
-        if (!message.content) {
-          return message
-        }
-        if (typeof message.content !== 'string') {
-          return message
-        }
-        return {
-          ...message,
-          content: await encryptData(this.publicKey!, message.content)
-        }
-      })) as any // Too hard to type this
+      messages = (await Promise.all(
+        messages.map(async (message) => {
+          if (!message.content) {
+            return message
+          }
+          if (typeof message.content !== 'string') {
+            return message
+          }
+          return {
+            ...message,
+            content: await encryptData(this.publicKey!, message.content)
+          }
+        })
+      )) as any // Too hard to type this
     }
 
     const response = await fetch(endpoint, {
@@ -180,23 +182,13 @@ export class OramaProxy {
 }
 
 async function importPublicKey(keyData: ArrayBuffer) {
-  const key = await crypto.subtle.importKey(
-    "spki",
-    keyData,
-    { name: "RSA-OAEP", hash: { name: "SHA-256" } },
-    true,
-    ["encrypt"]
-  );
-  return key;
+  const key = await crypto.subtle.importKey('spki', keyData, { name: 'RSA-OAEP', hash: { name: 'SHA-256' } }, true, ['encrypt'])
+  return key
 }
 
 async function encryptPieceData(publicKey: CryptoKey, encodedData: Uint8Array) {
-  const encryptedData = await crypto.subtle.encrypt(
-      { name: "RSA-OAEP" },
-      publicKey,
-      encodedData
-  );
-  return new Uint8Array(encryptedData);
+  const encryptedData = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, encodedData)
+  return new Uint8Array(encryptedData)
 }
 
 function restoreKey(s: number[]): Uint8Array {
@@ -205,7 +197,7 @@ function restoreKey(s: number[]): Uint8Array {
 
 const BATCH_SIZE = 50
 async function encryptData(publicKey: CryptoKey, data: string) {
-  const encodedData = new TextEncoder().encode(data);
+  const encodedData = new TextEncoder().encode(data)
 
   const arr = []
   for (let i = 0; i < encodedData.length; i += BATCH_SIZE) {

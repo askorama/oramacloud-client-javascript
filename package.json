@@ -54,12 +54,18 @@
   "dependencies": {
     "@orama/orama": "^2.0.1",
     "@paralleldrive/cuid2": "^2.2.1",
+    "lodash": "^4.17.21",
+    "lodash.debounce": "^4.0.8",
+    "lodash.throttle": "^4.1.1",
     "react": "^18.2.0",
     "vue": "^3.3.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.4.1",
     "@fastify/formbody": "^7.4.0",
+    "@types/lodash": "^4.14.202",
+    "@types/lodash.debounce": "^4.0.9",
+    "@types/lodash.throttle": "^4.1.9",
     "@types/node": "^20.3.1",
     "@types/react": "^18.2.14",
     "dotenv": "^16.3.1",
