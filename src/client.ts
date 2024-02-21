@@ -61,12 +61,6 @@ export class OramaClient {
   }
 
   public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Results<AnyDocument>> {
-    if (this.abortController) {
-      this.abortController.abort()
-    }
-
-    this.abortController = new AbortController()
-
     await this.initPromise
     const cacheKey = `search-${JSON.stringify(query)}`
 
@@ -76,6 +70,12 @@ export class OramaClient {
     const shouldUseCache = config?.fresh !== true && this.cache?.has(cacheKey)
 
     const performSearch = async () => {
+      if (this.abortController) {
+        this.abortController.abort()
+      }
+  
+      this.abortController = new AbortController()
+
       try {
         const timeStart = Date.now()
         searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, this.abortController)
@@ -93,7 +93,7 @@ export class OramaClient {
       if (this.collector) {
         this.collector.add({
           rawSearchString: query.term,
-          resultsCount: searchResults.hits.length,
+          resultsCount: searchResults?.hits?.length ?? 0,
           roundTripTime,
           query,
           cached,
@@ -108,6 +108,17 @@ export class OramaClient {
       roundTripTime = 0
       searchResults = this.cache.get(cacheKey) as Results<AnyDocument>
       cached = true
+
+      if (this.collector) {
+        this.collector.add({
+          rawSearchString: query.term,
+          resultsCount: searchResults?.hits?.length ?? 0,
+          roundTripTime,
+          query,
+          cached,
+          searchedAt: new Date()
+        })
+      }
     } else {
       if (config?.debounce) {
         return new Promise((resolve, reject) => {
@@ -163,7 +174,7 @@ export class OramaClient {
     if (this.collector != null) {
       this.collector.add({
         rawSearchString: query.term,
-        resultsCount: searchResults.hits.length,
+        resultsCount: searchResults.hits?.length ?? 0,
         roundTripTime,
         query,
         cached,
