@@ -131,7 +131,7 @@ export class OramaClient {
                 }
               }
             },
-            config?.debounce || 300
+            config.debounce
           )
         })
       }

@@ -5,6 +5,7 @@ import fFormBody from '@fastify/formbody'
 import { AddressInfo } from 'node:net'
 import { once, EventEmitter } from 'node:events'
 import assert from 'node:assert'
+import util from 'node:util'
 
 await t.test('client', async t => {
   const {
@@ -33,6 +34,34 @@ await t.test('client', async t => {
 
     assert.equal(1, telemetryBody.length)
     assert.equal(telemetryBody[0].events[0].rawSearchString, 'foobar')
+  })
+
+  await t.test('debounce', async t => {
+    const client = new OramaClient({
+      endpoint,
+      api_key: apiKey,
+    })
+
+    const terms = ['f', 'fo', 'foo', 'foob', 'fooba', 'foobar']
+    const searches = []
+    for (const term of terms) {
+      searches.push(client.search({
+        mode: 'fulltext',
+        term
+      }, {
+        debounce: 50,
+        fresh: true
+      }))
+      await new Promise(resolve => setTimeout(resolve, 1))
+    }
+
+    const result = await searches[searches.length - 1]
+    assert.ok(result)
+
+    for (let i = 0; i < searches.length - 2; i++) {
+      util.inspect(searches[i]).includes("pending")
+    }
+
   })
 
   await t.test('vectorSearch should return the result', async t => {
@@ -71,6 +100,7 @@ async function setUpServer (t: any): Promise<{
     }
   })
   fastify.post('/index/my-index/search', async (request, reply) => {
+    await new Promise(resolve => setTimeout(resolve, 100))
     return {
       hits: [],
       count: 55
