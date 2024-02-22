@@ -1,5 +1,5 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError } from './types.js'
-import type { SearchParams, Results, AnyDocument, AnyOrama } from '@orama/orama'
+import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
 
@@ -61,7 +61,7 @@ export class OramaClient {
     this.init()
   }
 
-  public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Results<AnyDocument> | undefined> {
+  public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<AnyDocument>>> {
     await this.initPromise
 
     const currentRequestNumber = ++this.searchRequestCounter;
@@ -125,8 +125,8 @@ export class OramaClient {
               try {
                 await performSearch()
                 resolve(searchResults)
-              } catch (error: any) {
-                if (error.name !== 'AbortError') {
+              } catch (error) {
+                if ((error as any).name !== 'AbortError') {
                   console.error('Search request failed', error)
                   reject(error)
                 }
@@ -143,6 +143,8 @@ export class OramaClient {
     if (currentRequestNumber === this.searchRequestCounter) {
       return searchResults;
     }
+
+    return null
   }
 
   public async vectorSearch(query: ClientSearchParams, config?: SearchConfig): Promise<Pick<Results<AnyDocument>, 'hits' | 'elapsed'>> {
