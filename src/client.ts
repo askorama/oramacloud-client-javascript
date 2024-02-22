@@ -63,6 +63,7 @@ export class OramaClient {
 
   public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<AnyDocument>>> {
     await this.initPromise
+    const searchedAt = new Date()
 
     const currentRequestNumber = ++this.searchRequestCounter;
     const cacheKey = `search-${JSON.stringify(query)}`
@@ -87,16 +88,15 @@ export class OramaClient {
         }
       }
 
-      if (this.collector) {
-        this.collector.add({
-          rawSearchString: query.term,
-          resultsCount: searchResults?.hits?.length ?? 0,
-          roundTripTime,
-          query,
-          cached,
-          searchedAt: new Date()
-        })
-      }
+      this.collector?.add({
+        rawSearchString: query.term,
+        resultsCount: searchResults?.count,
+        roundTripTime,
+        query,
+        cached,
+        searchedAt,
+        results: searchResults.hits?.map((hit) => ({ id: hit.id, score: hit.score })),
+      })
 
       return searchResults;
     }
@@ -106,16 +106,15 @@ export class OramaClient {
       searchResults = this.cache.get(cacheKey) as Results<AnyDocument>
       cached = true
 
-      if (this.collector) {
-        this.collector.add({
-          rawSearchString: query.term,
-          resultsCount: searchResults?.hits?.length ?? 0,
-          roundTripTime,
-          query,
-          cached,
-          searchedAt: new Date()
-        })
-      }
+      this.collector?.add({
+        rawSearchString: query.term,
+        resultsCount: searchResults?.count,
+        roundTripTime,
+        query,
+        cached,
+        searchedAt,
+        results: searchResults.hits?.map((hit) => ({ id: hit.id, score: hit.score })),
+      })
     } else {
       if (config?.debounce) {
         return new Promise((resolve, reject) => {
@@ -179,6 +178,7 @@ export class OramaClient {
         roundTripTime,
         query,
         cached,
+        results: searchResults.hits?.map((hit) => ({ id: hit.id, score: hit.score })),
         searchedAt: new Date()
       })
     }

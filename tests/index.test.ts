@@ -22,6 +22,7 @@ await t.test('client', async t => {
     })
 
     const results = await client.search({
+      mode: 'fulltext',
       term: 'foobar'
     })
 
@@ -41,6 +42,7 @@ await t.test('client', async t => {
     })
 
     const results = await client.vectorSearch({
+      mode: 'fulltext',
       term: 'foobar',
     })
 
