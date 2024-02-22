@@ -31,7 +31,8 @@ export class OramaClient {
   private readonly collector?: Collector
   private readonly cache?: Cache<Results<AnyDocument>>
   private abortController?: AbortController
-  private searchDebounceTimer?: number
+  private searchDebounceTimer?: NodeJS.Timer
+  private searchRequestCounter = 0;
 
   private heartbeat?: HeartBeat
   private initPromise?: Promise<OramaInitResponse | null>
@@ -60,8 +61,10 @@ export class OramaClient {
     this.init()
   }
 
-  public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Results<AnyDocument>> {
+  public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Results<AnyDocument> | undefined> {
     await this.initPromise
+
+    const currentRequestNumber = ++this.searchRequestCounter;
     const cacheKey = `search-${JSON.stringify(query)}`
 
     let searchResults: Results<AnyDocument>
@@ -70,12 +73,6 @@ export class OramaClient {
     const shouldUseCache = config?.fresh !== true && this.cache?.has(cacheKey)
 
     const performSearch = async () => {
-      if (this.abortController) {
-        this.abortController.abort()
-      }
-  
-      this.abortController = new AbortController()
-
       try {
         const timeStart = Date.now()
         searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, this.abortController)
@@ -101,7 +98,7 @@ export class OramaClient {
         })
       }
 
-      return searchResults
+      return searchResults;
     }
 
     if (shouldUseCache && this.cache) {
@@ -123,7 +120,7 @@ export class OramaClient {
       if (config?.debounce) {
         return new Promise((resolve, reject) => {
           clearTimeout(this.searchDebounceTimer)
-          this.searchDebounceTimer = window.setTimeout(
+          this.searchDebounceTimer = setTimeout(
             async () => {
               try {
                 await performSearch()
@@ -138,12 +135,14 @@ export class OramaClient {
             config?.debounce || 300
           )
         })
-      } else {
-        return performSearch()
       }
+
+      return performSearch()
     }
 
-    return searchResults
+    if (currentRequestNumber === this.searchRequestCounter) {
+      return searchResults;
+    }
   }
 
   public async vectorSearch(query: ClientSearchParams, config?: SearchConfig): Promise<Pick<Results<AnyDocument>, 'hits' | 'elapsed'>> {
