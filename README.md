@@ -1,5 +1,7 @@
 # Orama Cloud Client
 
+[![Node.js CI](https://github.com/askorama/javascript-sdk/actions/workflows/node.js.yml/badge.svg)](https://github.com/askorama/javascript-sdk/actions/workflows/node.js.yml)
+
 ## Install
 
 ```sh
