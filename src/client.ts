@@ -18,7 +18,7 @@ export interface SearchConfig {
 export type SearchMode = 'fulltext' | 'vector' | 'hybrid'
 
 type AdditionalSearchParams = {
-  mode: SearchMode
+  mode?: SearchMode
   returning?: string[]
 }
 
@@ -32,7 +32,7 @@ export class OramaClient {
   private readonly cache?: Cache<Results<AnyDocument>>
   private abortController?: AbortController
   private searchDebounceTimer?: NodeJS.Timer
-  private searchRequestCounter = 0;
+  private searchRequestCounter = 0
 
   private heartbeat?: HeartBeat
   private initPromise?: Promise<OramaInitResponse | null>
@@ -64,7 +64,7 @@ export class OramaClient {
   public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<AnyDocument>>> {
     await this.initPromise
 
-    const currentRequestNumber = ++this.searchRequestCounter;
+    const currentRequestNumber = ++this.searchRequestCounter
     const cacheKey = `search-${JSON.stringify(query)}`
 
     let searchResults: Results<AnyDocument>
@@ -98,7 +98,7 @@ export class OramaClient {
         })
       }
 
-      return searchResults;
+      return searchResults
     }
 
     if (shouldUseCache && this.cache) {
@@ -141,7 +141,7 @@ export class OramaClient {
     }
 
     if (currentRequestNumber === this.searchRequestCounter) {
-      return searchResults;
+      return searchResults
     }
 
     return null

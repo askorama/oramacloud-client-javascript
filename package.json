@@ -32,7 +32,7 @@
     "build:lib": "tsup --config tsup.lib.js",
     "build:react": "tsup --config tsup.react.js",
     "build:vue": "tsup --config tsup.vue.js",
-    "test": "tsx tests/index.test.ts && tsx tests/e2e.test.ts",
+    "test": "node --no-warnings --loader tsx --test **/*.test.ts",
     "serve:example": "esbuild src/index.ts --bundle --outfile=example/out.js --format=esm --watch --servedir=example",
     "prepare": "husky install"
   },

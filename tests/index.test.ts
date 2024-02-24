@@ -22,11 +22,11 @@ await t.test('client', async t => {
     })
 
     const results = await client.search({
-      term: 'foobar'
+      term: 'foobar',
     })
 
-    assert.equal(55, results.count)
-    assert.equal(0, results.hits.length)
+    assert.equal(55, results?.count)
+    assert.equal(0, results?.hits.length)
 
     const telemetryBody = await once(telementryWaiter, 'telemetry')
 
