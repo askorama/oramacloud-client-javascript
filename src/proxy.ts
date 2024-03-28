@@ -102,6 +102,13 @@ export class OramaProxy {
   }
 
   public async *chatStream(params: ChatParams): AsyncGenerator<string> {
+    const isReady = await this.ready
+
+    if (!isReady) {
+      console.log('OramaProxy had an error during the initialization')
+      return ''
+    }
+
     const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_CHAT_ENDPOINT}?apiKey=${this.api_key}`
 
     let messages = params.messages
