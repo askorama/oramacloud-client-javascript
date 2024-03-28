@@ -1,10 +1,21 @@
 import type { Nullable } from '@orama/orama'
 import type { CloudManager } from './index.js'
-import type { Endpoint } from './types.js'
+import type { Endpoint, EndpointDeploy, EndpointNotify, EndpointSnapshot } from './types.js'
+import * as CONST from './constants.js'
 
 type IndexManagerParams = {
   manager: CloudManager
 }
+
+type SnapshotData = object[] | object
+
+type CallWebhookPayload<E extends Endpoint> = E extends EndpointSnapshot
+  ? SnapshotData
+  : E extends EndpointNotify
+    ? object[]
+    : E extends EndpointDeploy
+      ? undefined
+      : never
 
 export class IndexManager {
   private manager: CloudManager
@@ -23,32 +34,32 @@ export class IndexManager {
 
   public empty() {
     this.checkIndexID()
-    return this.enqueueOperation(() => this.callIndexWebhook('snapshot', []))
+    return this.enqueueOperation(() => this.callIndexWebhook<EndpointSnapshot>(CONST.ENDPOINT_SNAPSHOT, []))
   }
 
-  public snapshot(data: object) {
+  public snapshot(data: CallWebhookPayload<EndpointSnapshot>) {
     this.checkIndexID()
-    return this.enqueueOperation(() => this.callIndexWebhook('snapshot', data))
+    return this.enqueueOperation(() => this.callIndexWebhook<EndpointSnapshot>(CONST.ENDPOINT_SNAPSHOT, data))
   }
 
-  public insert(data: object[]) {
+  public insert(data: CallWebhookPayload<EndpointNotify>) {
     this.checkIndexID()
-    return this.enqueueOperation(() => this.callIndexWebhook('notify', { upsert: data }))
+    return this.enqueueOperation(() => this.callIndexWebhook<EndpointNotify>(CONST.ENDPOINT_NOTIFY, { upsert: data }))
   }
 
-  public update(data: object[]) {
+  public update(data: CallWebhookPayload<EndpointNotify>) {
     this.checkIndexID()
-    return this.enqueueOperation(() => this.callIndexWebhook('notify', { upsert: data }))
+    return this.enqueueOperation(() => this.callIndexWebhook<EndpointNotify>(CONST.ENDPOINT_NOTIFY, { upsert: data }))
   }
 
-  public delete(data: object[]) {
+  public delete(data: CallWebhookPayload<EndpointNotify>) {
     this.checkIndexID()
-    return this.enqueueOperation(() => this.callIndexWebhook('notify', { remove: data }))
+    return this.enqueueOperation(() => this.callIndexWebhook<EndpointNotify>(CONST.ENDPOINT_NOTIFY, { remove: data }))
   }
 
   public deploy() {
     this.checkIndexID()
-    return this.enqueueOperation(() => this.callIndexWebhook('deploy'))
+    return this.enqueueOperation(() => this.callIndexWebhook<EndpointDeploy>(CONST.ENDPOINT_DEPLOY))
   }
 
   private checkIndexID() {
@@ -77,7 +88,7 @@ export class IndexManager {
     this.executeNext()
   }
 
-  private callIndexWebhook(endpoint: Endpoint, payload?: object): Promise<Response> {
+  private callIndexWebhook<E extends Endpoint>(endpoint: E, payload?: CallWebhookPayload<E>) {
     return this.manager.callIndexWebhook(endpoint, payload)
   }
 }
