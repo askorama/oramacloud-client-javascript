@@ -3,9 +3,7 @@ import assert from 'node:assert'
 import { OramaProxy } from '../src/proxy.js'
 import 'dotenv/config.js'
 
-const client = new OramaProxy({
-  api_key: process.env.ORAMA_SECURE_PROXY_API_KEY_TEST || ''
-})
+const client = createProxy()
 
 await t.test('secure proxy', async t => {
   await t.test('can generate openai embeddings', async t => {
@@ -93,4 +91,21 @@ await t.test('secure proxy', async t => {
     }
   })
 
+  await t.test('can stream chat wait for /init', async t => {
+    const client = createProxy()
+    const resp = client.chatStream({
+      model: 'openai/gpt-4-1106-preview',
+      messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
+    })
+
+    for await (const message of resp) {
+      assert.ok(message.length > 0)
+    }
+  })
 })
+
+function createProxy() {
+  return new OramaProxy({
+    api_key: process.env.ORAMA_SECURE_PROXY_API_KEY_TEST || ''
+  })
+}
