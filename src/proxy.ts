@@ -64,7 +64,7 @@ export class OramaProxy {
       return []
     }
 
-    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_EMBEDDINGS_ENDPOINT}?apiKey=${this.api_key}`
+    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_EMBEDDINGS_ENDPOINT}?apiKey=${encodeURIComponent(this.api_key)}`
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -109,7 +109,7 @@ export class OramaProxy {
       return ''
     }
 
-    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_CHAT_ENDPOINT}?apiKey=${this.api_key}`
+    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_CHAT_ENDPOINT}?apiKey=${encodeURIComponent(this.api_key)}`
 
     let messages = params.messages
     if (this.publicKey) {
@@ -158,7 +158,7 @@ export class OramaProxy {
   }
 
   private async init() {
-    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_INIT_ENDPOINT}?apiKey=${this.api_key}`
+    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_INIT_ENDPOINT}?apiKey=${encodeURIComponent(this.api_key)}`
     const response = await fetch(endpoint, {
       headers: {
         referer: this.getReferrer()
