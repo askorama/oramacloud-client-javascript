@@ -13,4 +13,5 @@ export const DEFAULT_CACHE_SAVE_INTERVAL_MS = 5000
 export const ORAMA_PROXY_ENDPOINT = 'https://secure-proxy.orama.run'
 export const ORAMA_PROXY_INIT_ENDPOINT = '/init'
 export const ORAMA_PROXY_CHAT_ENDPOINT = '/chat'
+export const ORAMA_PROXY_SUMMARY_ENDPOINT = '/summary'
 export const ORAMA_PROXY_EMBEDDINGS_ENDPOINT = '/query'
