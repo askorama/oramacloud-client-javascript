@@ -8,6 +8,12 @@ dependencies:
   '@orama/orama':
     specifier: ^2.0.1
     version: 2.0.1
+  '@orama/stemmers':
+    specifier: ^2.0.12
+    version: 2.0.12
+  '@orama/stopwords':
+    specifier: ^2.0.12
+    version: 2.0.12
   '@paralleldrive/cuid2':
     specifier: ^2.2.1
     version: 2.2.1
@@ -738,6 +744,16 @@ packages:
 
   /@orama/orama@2.0.1:
     resolution: {integrity: sha512-9HUHToE93yvDGcmnEELNynG4kmzSrhSElnfLN9UFPO9ZwfHVPp1NvALli7rm1F/Bqdgi6YM6dEXKmPJUQnwiHg==}
+    engines: {node: '>= 16.0.0'}
+    dev: false
+
+  /@orama/stemmers@2.0.12:
+    resolution: {integrity: sha512-CZOeBZLhq+rBWmgvVMMf3qOIm2aX9hLNe1FN1YNWKONjvQRxa33nmCU8k4gCB8c0g6Nmd+d8P1TDfDoNJtcrWw==}
+    engines: {node: '>= 16.0.0'}
+    dev: false
+
+  /@orama/stopwords@2.0.12:
+    resolution: {integrity: sha512-xazDKQ0ZvDz34wFqvSigD+sl6bxSfrbguRcMFaSLLCPIrICBnBaMWQQ1d7IrHpHfPFk7OfUrC+MdVNq6n7RuVA==}
     engines: {node: '>= 16.0.0'}
     dev: false
 

@@ -8,6 +8,38 @@ const client = createProxy()
 
 await t.test('secure proxy', async t => {
 
+  await t.test('summaryStream should abort previous requests', async t => {
+    const client = createProxy();
+  
+    const summaryParamsFirst: SummaryParams = {
+      docIDs: ['3', '1', '2'],
+      indexID: 'e2e-test-01',
+      model: 'openai/gpt-3.5-turbo',
+      prompt: 'Initial request'
+    };
+  
+    const summaryStreamFirst = client.summaryStream(summaryParamsFirst);
+    const firstResponsePiece = (await summaryStreamFirst.next()).value;
+    assert.ok(firstResponsePiece.length > 0, 'First request should yield data');
+  
+    const summaryParamsSecond: SummaryParams = {
+      docIDs: ['4', '5', '6'],
+      indexID: 'e2e-test-02',
+      model: 'openai/gpt-3.5-turbo',
+      prompt: 'Subsequent request'
+    };
+  
+    const summaryStreamSecond = client.summaryStream(summaryParamsSecond);
+    const secondResponsePiece = (await summaryStreamSecond.next()).value;
+    assert.ok(secondResponsePiece.length > 0, 'Second request should yield data');
+  
+    const nextFirstResponse = await summaryStreamFirst.next();
+    assert.ok(nextFirstResponse.done, 'First stream should be canceled');
+  
+    assert.ok((await summaryStreamSecond.next()).value.length > 0, 'Second stream should still yield data');
+  });
+  
+
   await t.test('can generate summaries', async t => {
     const summaryParams: SummaryParams = {
       docIDs: ['3', '1', '2'],
@@ -18,8 +50,6 @@ await t.test('secure proxy', async t => {
     }
 
     const summary = await client.summary(summaryParams)
-
-    console.log(summary)
 
     assert.ok(summary.length > 0)
 
