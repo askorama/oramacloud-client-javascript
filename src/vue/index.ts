@@ -1,50 +1,36 @@
 import type { Results, Nullable, AnyDocument } from '@orama/orama'
-import type { OramaClient, ClientSearchParams } from '../client.js'
-
-interface IOramaCloudData {
-  endpoint: string
-  apiKey: string
-}
+import { type ClientSearchParams, type OramaClient as OramaClientType } from '../client.js'
+import { Ref, onMounted, ref } from 'vue'
 
 interface UseSearch {
-  ready: boolean
-  results: Nullable<Results<AnyDocument>>
-  error: Nullable<Error>
+  ready: Ref<boolean>
+  results: Ref<Nullable<Results<AnyDocument>>>
+  error: Ref<Nullable<Error>>
 }
 
-export class OramaCloud {
-  apiKey: string
-  endpoint: string
-  client: OramaClient
+type useSearchParams = ClientSearchParams & { client: OramaClientType }
+export function useSearch(query: useSearchParams): UseSearch {
+  const ready = ref(false)
+  const results: Ref<Nullable<Results<AnyDocument>>> = ref(null)
+  const error: Ref<Nullable<Error>> = ref(null)
 
-  constructor(clientData: IOramaCloudData) {
-    this.apiKey = clientData.apiKey
-    this.endpoint = clientData.endpoint
-    try {
-      this.client = new OramaClient({ api_key: this.apiKey, endpoint: this.endpoint })
-    } catch (e: any) {
-      throw new Error(e)
+  onMounted(async () => {
+    if (!query.client) {
+      throw new Error('No client was passed')
     }
-  }
-
-  async search(query: ClientSearchParams): Promise<UseSearch> {
-    let ready = false
-    let results: Nullable<Results<AnyDocument>> = null
-    let error: Nullable<Error> = null
-
-    ready = true
+    ready.value = true
 
     try {
-      const oramaResults = await this.client?.search(query)
-      results = oramaResults
+      const oramaResults = await query.client?.search(query)
+      results.value = oramaResults
     } catch (e: any) {
-      error = e
+      error.value = e
     }
+  })
 
-    return {
-      ready,
-      results,
-      error
-    }
+  return {
+    ready,
+    results,
+    error
   }
 }
