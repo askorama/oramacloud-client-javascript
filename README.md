@@ -11,46 +11,49 @@ npm i @oramacloud/client
 ## Integrating with Orama Cloud
 
 ```js
-import { OramaClient } from '@oramacloud/client'
+import { OramaClient } from "@oramacloud/client";
 
 const client = new OramaClient({
-  endpoint: '<Your Orama Cloud Endpoint>',
-  api_key: '<Your Orama Cloud API Key>'
-})
+  endpoint: "<Your Orama Cloud Endpoint>",
+  api_key: "<Your Orama Cloud API Key>",
+});
 
 const results = await client.search({
-  term: 'red leather shoes',
-})
+  term: "red leather shoes",
+});
 ```
 
 ## Advanced search
 
 ```js
 const results = await client.search({
-  term: 'red leather shoes',
+  term: "red leather shoes",
   where: {
     price: {
-      lte: 9.99
+      lte: 9.99,
     },
-    gender: 'unisex'
+    gender: "unisex",
   },
   limit: 5,
-  offset: 1
-})
+  offset: 1,
+});
 ```
 
 ## Generating embeddings via the Secure Proxy
 
 ```js
-import { OramaProxy } from '@oramacloud/client'
+import { OramaProxy } from "@oramacloud/client";
 
 const proxy = new OramaClient({
-  api_key: '<Your Orama Secure Proxy API Key>'
-})
+  api_key: "<Your Orama Secure Proxy API Key>",
+});
 
-const embeddings = await proxy.generateEmbeddings('red leather shoes', 'openai/text-embedding-ada-002')
+const embeddings = await proxy.generateEmbeddings(
+  "red leather shoes",
+  "openai/text-embedding-ada-002"
+);
 
-console.log(embeddings)
+console.log(embeddings);
 // [-0.019633075, -0.00820422, -0.013555876, -0.011825735, 0.006641511, -0.012948156, ...]
 ```
 
@@ -70,19 +73,19 @@ You can generate chat completions via the Secure Proxy in two different ways:
 ### Returning a single string
 
 ```js
-import { OramaProxy } from '@oramacloud/client'
+import { OramaProxy } from "@oramacloud/client";
 
 const proxy = new OramaClient({
-  api_key: '<Your Orama Secure Proxy API Key>'
-})
+  api_key: "<Your Orama Secure Proxy API Key>",
+});
 
 const chatParams = {
-  model: 'openai/gpt-4',
-  messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
-}
+  model: "openai/gpt-4",
+  messages: [{ role: "user", content: "Who is Michael Scott?" }],
+};
 
-const response = await proxy.chat(chatParams)
-console.log(response)
+const response = await proxy.chat(chatParams);
+console.log(response);
 
 // "Michael Scott is a fictional character from the television show "The Office" (US version) ..."
 ```
@@ -97,26 +100,26 @@ Available models:
 ### Returning a stream (via async iterators)
 
 ```js
-import { OramaProxy } from '@oramacloud/client'
+import { OramaProxy } from "@oramacloud/client";
 
 const proxy = new OramaClient({
-  api_key: '<Your Orama Secure Proxy API Key>'
-})
+  api_key: "<Your Orama Secure Proxy API Key>",
+});
 
 const chatParams = {
-  model: 'openai/gpt-4',
-  messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
-}
+  model: "openai/gpt-4",
+  messages: [{ role: "user", content: "Who is Michael Scott?" }],
+};
 
 for await (const message of proxy.chatStream(chatParams)) {
-  console.log(message)
+  console.log(message);
 }
 
 // Michael
 // Scott is
 // a fictional
 //  character from the
-//  television show 
+//  television show
 // "The
 // Office" (US
 // version)
@@ -133,32 +136,35 @@ Available models:
 ## With React
 
 ```jsx
-import { OramaCloud, useSearch } from '@oramacloud/client/react'
+import { OramaCloud, useSearch } from "@oramacloud/client/react";
 
 export function App() {
   return (
-    <OramaCloud endpoint='<Your Orama Cloud Endpoint>' apiKey='<Your Orama Cloud API Key>'>
+    <OramaCloud
+      endpoint="<Your Orama Cloud Endpoint>"
+      apiKey="<Your Orama Cloud API Key>"
+    >
       <Search />
     </OramaCloud>
-  )
+  );
 }
 
 function Search() {
   const { results, error } = useSearch({
-    term: 'red leather shoes',
+    term: "red leather shoes",
     limit: 10,
-    offset: 5
-  })
+    offset: 5,
+  });
 
   return (
     <>
       {results.hits.map((hit) => {
         <div key={hit.id}>
           <p> {hit.document.myCustomProperty} </p>
-        </div>
+        </div>;
       })}
     </>
-  )
+  );
 }
 ```
 
@@ -169,38 +175,31 @@ function Search() {
 Create an orama.ts file in the src folder to create an Orama Cloud Client instance that you’ll use throughout your application.
 
 ```ts
-import { OramaCloud } from '@oramacloud/client/vue'
+import { OramaClient } from "@oramacloud/client";
 
-export const orama = new OramaCloud({
-  apiKey: '<Your Orama Cloud API Key>',
-  endpoint: '<Your Orama Cloud Endpoint>'
-})
+export const client = new OramaCloud({
+  apiKey: "<Your Orama Cloud API Key>",
+  endpoint: "<Your Orama Cloud Endpoint>",
+});
 ```
 
 ### Use the client instance in your component
 
 ```jsx
 <template>
-  <li v-for="hit in searchResults?.hits" :key="hit.id">
+  <li v-for="hit in results?.hits" :key="hit.id">
     {{ hit.id }}
   </li>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { useSearch } from "@oramacloud/client/vue";
 import { orama } from './orama'
 
-const searchResults = ref(null)
-
-onMounted(async () => {
-  if (orama) {
-    const { results, error } = await orama.search({
-      term: 'guitar',
-      limit: 5
-    })
-
-    searchResults.value = results
-  }
-})
+const { results } = useSearch({
+  client,
+  term: "guitar",
+  limit: 5
+});
 </script>
 ```
