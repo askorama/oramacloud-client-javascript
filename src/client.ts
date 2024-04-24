@@ -283,3 +283,17 @@ export class OramaClient {
     return await res.json()
   }
 }
+
+const orama = new OramaClient({
+  endpoint: 'https://cloud.orama.foo/v1/indexes/test-answer-dalfkj',
+  api_key: '5thXEia7alVyZaomQwbtFdAZuztPMHIt'
+})
+
+const session = orama.createAnswerSession()
+
+session.on('message-loading', (loading) => console.log({ loading }))
+// session.on('message-change', (messages) => console.log({ messages }))
+
+const data = await orama.search({ term: 'german' })
+
+const gen = session.askStream("What's the best guard dog?", data?.hits ?? [])

@@ -28,7 +28,7 @@ export class AnswerSession extends EventEmitter {
   private endpoint: string
 
   constructor(params: AnswerParams) {
-    super();
+    super()
     this.messages = params.initialMessages || []
     this.mode = params.mode
     this.inferenceType = params.inferenceType
@@ -37,13 +37,13 @@ export class AnswerSession extends EventEmitter {
     this.endpoint = `${this.oramaClient.endpoint}/answer?api-key=${this.oramaClient.api_key}`
   }
 
-  public ask(question: string, context: Context): AsyncGenerator<string> {
+  public askStream(question: string, context: Context): AsyncGenerator<string> {
     this.messages.push({ role: 'user', content: question })
     return this.fetchAnswer(question, context)
   }
 
-  public async askSync(question: string, context: Context): Promise<string> {
-    const generator = this.ask(question, context)
+  public async ask(question: string, context: Context): Promise<string> {
+    const generator = this.askStream(question, context)
     let result = ''
     for await (const message of generator) {
       result = message
@@ -69,10 +69,6 @@ export class AnswerSession extends EventEmitter {
     this.messages.push({ role: 'assistant', content: '' })
   }
 
-  private removeLastMessage(): void {
-    this.messages.pop()
-  }
-
   private async *fetchAnswer(query: string, context: Context): AsyncGenerator<string> {
     const requestBody = {
       type: this.inferenceType,
@@ -96,6 +92,7 @@ export class AnswerSession extends EventEmitter {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
 
+    this.emit('message-loading', true)
     this.addNewEmptyAssistantMessage()
 
     const lastMessage = this.messages.at(-1) as Message
@@ -110,5 +107,7 @@ export class AnswerSession extends EventEmitter {
       this.emit('message-change', this.messages)
       yield lastMessage.content
     }
+
+    this.emit('message-loading', false)
   }
 }
