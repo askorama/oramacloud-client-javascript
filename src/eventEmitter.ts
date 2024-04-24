@@ -3,6 +3,7 @@ import type { Message } from './answerSession.js'
 type Events = {
   'message-change': (messages: Message[]) => void
   'message-loading': (receivingMessage: boolean) => void
+  'answer-aborted': (aborted: true) => void
 }
 
 export class EventEmitter<T = Events> {

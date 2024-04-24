@@ -26,6 +26,7 @@ export class AnswerSession extends EventEmitter {
   private inferenceType: InferenceType
   private oramaClient: OramaClient
   private endpoint: string
+  private abortController?: AbortController
 
   constructor(params: AnswerParams) {
     super()
@@ -69,7 +70,18 @@ export class AnswerSession extends EventEmitter {
     this.messages.push({ role: 'assistant', content: '' })
   }
 
+  public abortAnswer() {
+    if (this.abortController) {
+      this.abortController.abort()
+      this.abortController = undefined
+      this.messages.pop()
+    }
+  }
+
   private async *fetchAnswer(query: string, context: Context): AsyncGenerator<string> {
+    this.abortController = new AbortController()
+    const { signal } = this.abortController
+
     const requestBody = {
       type: this.inferenceType,
       messages: this.messages,
@@ -82,7 +94,8 @@ export class AnswerSession extends EventEmitter {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      signal
     })
 
     if (!response.ok || response.body == null) {
@@ -97,15 +110,24 @@ export class AnswerSession extends EventEmitter {
 
     const lastMessage = this.messages.at(-1) as Message
 
-    while (true) {
-      const { value, done } = await reader.read()
-      if (done) {
-        break
+    try {
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) {
+          break
+        }
+        const decodedChunk = decoder.decode(value, { stream: true })
+        lastMessage.content += decodedChunk
+        this.emit('message-change', this.messages)
+        yield lastMessage.content
       }
-      const decodedChunk = decoder.decode(value, { stream: true })
-      lastMessage.content += decodedChunk
-      this.emit('message-change', this.messages)
-      yield lastMessage.content
+    } catch (err) {
+      // biome-ignore lint/suspicious/noExplicitAny: keep any for now
+      if ((err as any).name === 'AbortError') {
+        this.emit('answer-aborted', true)
+      } else {
+        throw err
+      }
     }
 
     this.emit('message-loading', false)
