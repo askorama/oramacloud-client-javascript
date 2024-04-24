@@ -1,5 +1,6 @@
-import { OramaClient } from './client.js'
 import type { Results, AnyDocument } from '@orama/orama'
+import { OramaClient } from './client.js'
+import { EventEmitter } from './eventEmitter.js'
 
 export type Context = Results<AnyDocument>['hits']
 
@@ -19,7 +20,7 @@ type AnswerParams = {
   oramaClient: OramaClient
 }
 
-export class AnswerSession {
+export class AnswerSession extends EventEmitter {
   private messages: Message[]
   private mode: Mode = 'fulltext'
   private inferenceType: InferenceType
@@ -27,6 +28,7 @@ export class AnswerSession {
   private endpoint: string
 
   constructor(params: AnswerParams) {
+    super();
     this.messages = params.initialMessages || []
     this.mode = params.mode
     this.inferenceType = params.inferenceType
@@ -40,13 +42,14 @@ export class AnswerSession {
     return this.fetchAnswer(question, context)
   }
 
-  public async ask2(question: string, context: Context): Promise<string> {
+  public async askSync(question: string, context: Context): Promise<string> {
     const generator = this.ask(question, context)
     let result = ''
     for await (const message of generator) {
       result = message
     }
 
+    this.emit('message-change', this.messages)
     return result
   }
 
@@ -78,8 +81,6 @@ export class AnswerSession {
       query
     }
 
-    console.log(requestBody)
-
     const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: {
@@ -97,7 +98,7 @@ export class AnswerSession {
 
     this.addNewEmptyAssistantMessage()
 
-    const lastMessage = this.messages.at(-1)
+    const lastMessage = this.messages.at(-1) as Message
 
     while (true) {
       const { value, done } = await reader.read()
@@ -106,6 +107,7 @@ export class AnswerSession {
       }
       const decodedChunk = decoder.decode(value, { stream: true })
       lastMessage.content += decodedChunk
+      this.emit('message-change', this.messages)
       yield lastMessage.content
     }
   }

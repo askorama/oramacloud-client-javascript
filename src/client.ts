@@ -283,20 +283,3 @@ export class OramaClient {
     return await res.json()
   }
 }
-
-const orama = new OramaClient({
-  endpoint: 'https://cloud.orama.foo/v1/indexes/test-answer-dalfkj',
-  api_key: '5thXEia7alVyZaomQwbtFdAZuztPMHIt'
-})
-
-const session = orama.createAnswerSession()
-
-const results = await orama.search({ term: 'german' })
-const mapped = results?.hits.map((h) => ({
-  document: {
-    title: h.document.breed,
-    content: h.document.country
-  }
-}))
-
-console.log(await session.ask2('Best guard dog', mapped))
