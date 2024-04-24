@@ -1,6 +1,6 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError } from './types.js'
 import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
-import type { Context, Message, Mode, InferenceType } from './answerSession.js'
+import type { Message, Mode, InferenceType } from './answerSession.js'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
 
