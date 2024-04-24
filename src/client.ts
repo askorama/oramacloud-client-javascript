@@ -28,6 +28,7 @@ export type AnswerParams = {
   type: 'documentation'
   query: string
   messages: Array<{ role: 'user' | 'system'; content: string }>
+  // biome-ignore lint/suspicious/noExplicitAny: keep any for now
   context: Results<any>['hits']
 }
 

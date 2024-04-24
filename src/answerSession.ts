@@ -122,7 +122,6 @@ export class AnswerSession extends EventEmitter {
         yield lastMessage.content
       }
     } catch (err) {
-      // biome-ignore lint/suspicious/noExplicitAny: keep any for now
       if ((err as any).name === 'AbortError') {
         this.emit('answer-aborted', true)
       } else {
