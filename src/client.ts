@@ -1,8 +1,10 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError } from './types.js'
 import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
+import type { Context, Message, Mode, InferenceType } from './answerSession.js'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
 
+import { AnswerSession } from './answerSession.js'
 import { Cache } from './cache.js'
 import * as CONST from './constants.js'
 import { Collector } from './collector.js'
@@ -22,7 +24,20 @@ type AdditionalSearchParams = {
   returning?: string[]
 }
 
+export type AnswerParams = {
+  type: 'documentation'
+  query: string
+  messages: Array<{ role: 'user' | 'system'; content: string }>
+  context: Results<any>['hits']
+}
+
 export type ClientSearchParams = SearchParams<AnyOrama> & AdditionalSearchParams
+
+export type AnswerSessionParams = {
+  inferenceType: InferenceType
+  initialMessages: Message[]
+  mode: Mode
+}
 
 export class OramaClient {
   private readonly id = createId()
@@ -186,6 +201,15 @@ export class OramaClient {
     return searchResults
   }
 
+  public createAnswerSession(params?: AnswerSessionParams) {
+    return new AnswerSession({
+      inferenceType: params?.inferenceType || 'documentation',
+      initialMessages: params?.initialMessages || [],
+      mode: params?.mode || 'fulltext',
+      oramaClient: this
+    })
+  }
+
   public startHeartBeat(config: HeartBeatConfig): void {
     this.heartbeat?.stop()
     this.heartbeat = new HeartBeat({
@@ -259,3 +283,20 @@ export class OramaClient {
     return await res.json()
   }
 }
+
+const orama = new OramaClient({
+  endpoint: 'https://cloud.orama.foo/v1/indexes/test-answer-dalfkj',
+  api_key: '5thXEia7alVyZaomQwbtFdAZuztPMHIt'
+})
+
+const session = orama.createAnswerSession()
+
+const results = await orama.search({ term: 'german' })
+const mapped = results?.hits.map((h) => ({
+  document: {
+    title: h.document.breed,
+    content: h.document.country
+  }
+}))
+
+console.log(await session.ask2('Best guard dog', mapped))
