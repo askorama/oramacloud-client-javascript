@@ -40,6 +40,7 @@ export type AnswerSessionParams = {
     onMessageChange?: (messages: Message[]) => void
     onMessageLoading?: (receivingMessage: boolean) => void
     onAnswerAborted?: (aborted: true) => void
+    onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
   }
 }
 

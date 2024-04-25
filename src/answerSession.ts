@@ -18,6 +18,7 @@ type AnswerParams = {
     onMessageChange?: (messages: Message[]) => void
     onMessageLoading?: (receivingMessage: boolean) => void
     onAnswerAborted?: (aborted: true) => void
+    onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
   }
 }
 
@@ -41,6 +42,11 @@ export class AnswerSession {
   public async askStream(params: SearchParams<AnyOrama>): Promise<AsyncGenerator<string>> {
     this.messages.push({ role: 'user', content: params.term ?? '' })
     const inferenceResult = await this.runInference(params)
+
+    if (this.events?.onSourceChange) {
+      this.events.onSourceChange(inferenceResult!)
+    }
+
     return this.fetchAnswer(params.term ?? '', inferenceResult?.hits ?? [])
   }
 
