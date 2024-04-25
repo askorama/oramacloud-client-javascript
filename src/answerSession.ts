@@ -1,6 +1,5 @@
-import type { Results, AnyDocument } from '@orama/orama'
+import type { Results, AnyDocument, SearchParams, AnyOrama } from '@orama/orama'
 import { OramaClient } from './client.js'
-import { EventEmitter } from './eventEmitter.js'
 
 export type Context = Results<AnyDocument>['hits']
 
@@ -9,57 +8,64 @@ export type Message = {
   content: string
 }
 
-export type Mode = 'fulltext' | 'vector' | 'hybrid'
-
 export type InferenceType = 'documentation'
 
 type AnswerParams = {
-  mode: Mode
   initialMessages: Message[]
   inferenceType: InferenceType
   oramaClient: OramaClient
+  events?: {
+    onMessageChange?: (messages: Message[]) => void
+    onMessageLoading?: (receivingMessage: boolean) => void
+    onAnswerAborted?: (aborted: true) => void
+    onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
+  }
 }
 
-export class AnswerSession extends EventEmitter {
+export class AnswerSession {
   private messages: Message[]
-  private mode: Mode = 'fulltext'
   private inferenceType: InferenceType
   private oramaClient: OramaClient
   private endpoint: string
   private abortController?: AbortController
+  private events: AnswerParams['events']
 
   constructor(params: AnswerParams) {
-    super()
     this.messages = params.initialMessages || []
-    this.mode = params.mode
     this.inferenceType = params.inferenceType
     this.oramaClient = params.oramaClient
     // @ts-expect-error - sorry TypeScript
     this.endpoint = `${this.oramaClient.endpoint}/answer?api-key=${this.oramaClient.api_key}`
+    this.events = params.events
   }
 
-  public askStream(question: string, context: Context): AsyncGenerator<string> {
-    this.messages.push({ role: 'user', content: question })
-    return this.fetchAnswer(question, context)
+  public async askStream(params: SearchParams<AnyOrama>): Promise<AsyncGenerator<string>> {
+    this.messages.push({ role: 'user', content: params.term ?? '' })
+    const inferenceResult = await this.runInference(params)
+
+    if (this.events?.onSourceChange) {
+      this.events.onSourceChange(inferenceResult!)
+    }
+
+    return this.fetchAnswer(params.term ?? '', inferenceResult?.hits ?? [])
   }
 
-  public async ask(question: string, context: Context): Promise<string> {
-    const generator = this.askStream(question, context)
+  public async ask(params: SearchParams<AnyOrama>): Promise<string> {
+    const generator = await this.askStream(params)
     let result = ''
     for await (const message of generator) {
       result = message
     }
 
-    this.emit('message-change', this.messages)
+    if (this.events?.onMessageChange) {
+      this.events.onMessageChange(this.messages)
+    }
+
     return result
   }
 
   public getMessages(): Message[] {
     return this.messages
-  }
-
-  public setMode(mode: Mode): void {
-    this.mode = mode
   }
 
   public clearSession(): void {
@@ -76,6 +82,10 @@ export class AnswerSession extends EventEmitter {
       this.abortController = undefined
       this.messages.pop()
     }
+  }
+
+  private runInference(params: SearchParams<AnyOrama>) {
+    return this.oramaClient.search(params)
   }
 
   private async *fetchAnswer(query: string, context: Context): AsyncGenerator<string> {
@@ -105,7 +115,10 @@ export class AnswerSession extends EventEmitter {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
 
-    this.emit('message-loading', true)
+    if (this.events?.onMessageLoading) {
+      this.events.onMessageLoading(true)
+    }
+
     this.addNewEmptyAssistantMessage()
 
     const lastMessage = this.messages.at(-1) as Message
@@ -118,17 +131,25 @@ export class AnswerSession extends EventEmitter {
         }
         const decodedChunk = decoder.decode(value, { stream: true })
         lastMessage.content += decodedChunk
-        this.emit('message-change', this.messages)
+
+        if (this.events?.onMessageChange) {
+          this.events.onMessageChange(this.messages)
+        }
+
         yield lastMessage.content
       }
     } catch (err) {
       if ((err as any).name === 'AbortError') {
-        this.emit('answer-aborted', true)
+        if (this.events?.onAnswerAborted) {
+          this.events.onAnswerAborted(true)
+        }
       } else {
         throw err
       }
     }
 
-    this.emit('message-loading', false)
+    if (this.events?.onMessageLoading) {
+      this.events.onMessageLoading(false)
+    }
   }
 }
