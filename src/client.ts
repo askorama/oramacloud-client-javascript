@@ -1,6 +1,6 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError } from './types.js'
 import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
-import type { Message, Mode, InferenceType } from './answerSession.js'
+import type { Message, InferenceType } from './answerSession.js'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
 
@@ -36,7 +36,6 @@ export type ClientSearchParams = SearchParams<AnyOrama> & AdditionalSearchParams
 export type AnswerSessionParams = {
   inferenceType?: InferenceType
   initialMessages?: Message[]
-  mode?: Mode
   events?: {
     onMessageChange?: (messages: Message[]) => void
     onMessageLoading?: (receivingMessage: boolean) => void
@@ -210,7 +209,6 @@ export class OramaClient {
     return new AnswerSession({
       inferenceType: params?.inferenceType || 'documentation',
       initialMessages: params?.initialMessages || [],
-      mode: params?.mode || 'fulltext',
       oramaClient: this,
       events: params?.events
     })
@@ -268,7 +266,6 @@ export class OramaClient {
     }
 
     if (method === 'POST' && body !== undefined) {
-      // biome-ignore lint/suspicious/noExplicitAny: keep any for now
       const b = body as any
       b.version = version
       b.id = this.id
@@ -289,20 +286,3 @@ export class OramaClient {
     return await res.json()
   }
 }
-
-const client = new OramaClient({
-  endpoint: 'https://cloud.orama.foo/v1/indexes/test-answer-dalfkj',
-  api_key: '5thXEia7alVyZaomQwbtFdAZuztPMHIt'
-})
-
-const session = client.createAnswerSession({
-  events: {
-    onAnswerAborted: (aborted: true) => console.log({ aborted }),
-    onMessageChange: (messages: Message[]) => console.log({ messages }),
-    onMessageLoading: (receivingMessage: boolean) => console.log({ receivingMessage })
-  }
-})
-
-const results = await client.search({ term: 'Pinscher' })
-
-await session.ask('What is the best guarding dog?', results.hits)

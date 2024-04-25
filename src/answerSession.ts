@@ -1,6 +1,5 @@
-import type { Results, AnyDocument } from '@orama/orama'
+import type { Results, AnyDocument, SearchParams, AnyOrama } from '@orama/orama'
 import { OramaClient } from './client.js'
-import { EventEmitter } from './eventEmitter.js'
 
 export type Context = Results<AnyDocument>['hits']
 
@@ -9,12 +8,9 @@ export type Message = {
   content: string
 }
 
-export type Mode = 'fulltext' | 'vector' | 'hybrid'
-
 export type InferenceType = 'documentation'
 
 type AnswerParams = {
-  mode: Mode
   initialMessages: Message[]
   inferenceType: InferenceType
   oramaClient: OramaClient
@@ -25,9 +21,8 @@ type AnswerParams = {
   }
 }
 
-export class AnswerSession extends EventEmitter {
+export class AnswerSession {
   private messages: Message[]
-  private mode: Mode = 'fulltext'
   private inferenceType: InferenceType
   private oramaClient: OramaClient
   private endpoint: string
@@ -35,9 +30,7 @@ export class AnswerSession extends EventEmitter {
   private events: AnswerParams['events']
 
   constructor(params: AnswerParams) {
-    super()
     this.messages = params.initialMessages || []
-    this.mode = params.mode
     this.inferenceType = params.inferenceType
     this.oramaClient = params.oramaClient
     // @ts-expect-error - sorry TypeScript
@@ -45,13 +38,14 @@ export class AnswerSession extends EventEmitter {
     this.events = params.events
   }
 
-  public askStream(question: string, context: Context): AsyncGenerator<string> {
-    this.messages.push({ role: 'user', content: question })
-    return this.fetchAnswer(question, context)
+  public async askStream(params: SearchParams<AnyOrama>): Promise<AsyncGenerator<string>> {
+    this.messages.push({ role: 'user', content: params.term ?? '' })
+    const inferenceResult = await this.runInference(params)
+    return this.fetchAnswer(params.term ?? '', inferenceResult?.hits ?? [])
   }
 
-  public async ask(question: string, context: Context): Promise<string> {
-    const generator = this.askStream(question, context)
+  public async ask(params: SearchParams<AnyOrama>): Promise<string> {
+    const generator = await this.askStream(params)
     let result = ''
     for await (const message of generator) {
       result = message
@@ -68,10 +62,6 @@ export class AnswerSession extends EventEmitter {
     return this.messages
   }
 
-  public setMode(mode: Mode): void {
-    this.mode = mode
-  }
-
   public clearSession(): void {
     this.messages = []
   }
@@ -86,6 +76,10 @@ export class AnswerSession extends EventEmitter {
       this.abortController = undefined
       this.messages.pop()
     }
+  }
+
+  private runInference(params: SearchParams<AnyOrama>) {
+    return this.oramaClient.search(params)
   }
 
   private async *fetchAnswer(query: string, context: Context): AsyncGenerator<string> {
@@ -140,7 +134,9 @@ export class AnswerSession extends EventEmitter {
       }
     } catch (err) {
       if ((err as any).name === 'AbortError') {
-        this.emit('answer-aborted', true)
+        if (this.events?.onAnswerAborted) {
+          this.events.onAnswerAborted(true)
+        }
       } else {
         throw err
       }
