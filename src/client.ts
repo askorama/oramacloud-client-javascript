@@ -1,6 +1,6 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError } from './types.js'
 import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
-import type { Message, Mode, InferenceType } from './answerSession.js'
+import type { Message, InferenceType } from './answerSession.js'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
 
@@ -28,16 +28,20 @@ export type AnswerParams = {
   type: 'documentation'
   query: string
   messages: Array<{ role: 'user' | 'system'; content: string }>
-  // biome-ignore lint/suspicious/noExplicitAny: keep any for now
   context: Results<any>['hits']
 }
 
 export type ClientSearchParams = SearchParams<AnyOrama> & AdditionalSearchParams
 
 export type AnswerSessionParams = {
-  inferenceType: InferenceType
-  initialMessages: Message[]
-  mode: Mode
+  inferenceType?: InferenceType
+  initialMessages?: Message[]
+  events?: {
+    onMessageChange?: (messages: Message[]) => void
+    onMessageLoading?: (receivingMessage: boolean) => void
+    onAnswerAborted?: (aborted: true) => void
+    onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
+  }
 }
 
 export class OramaClient {
@@ -206,8 +210,8 @@ export class OramaClient {
     return new AnswerSession({
       inferenceType: params?.inferenceType || 'documentation',
       initialMessages: params?.initialMessages || [],
-      mode: params?.mode || 'fulltext',
-      oramaClient: this
+      oramaClient: this,
+      events: params?.events
     })
   }
 
@@ -263,7 +267,6 @@ export class OramaClient {
     }
 
     if (method === 'POST' && body !== undefined) {
-      // biome-ignore lint/suspicious/noExplicitAny: keep any for now
       const b = body as any
       b.version = version
       b.id = this.id
