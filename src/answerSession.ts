@@ -18,6 +18,11 @@ type AnswerParams = {
   initialMessages: Message[]
   inferenceType: InferenceType
   oramaClient: OramaClient
+  events?: {
+    onMessageChange?: (messages: Message[]) => void
+    onMessageLoading?: (receivingMessage: boolean) => void
+    onAnswerAborted?: (aborted: true) => void
+  }
 }
 
 export class AnswerSession extends EventEmitter {
@@ -27,6 +32,7 @@ export class AnswerSession extends EventEmitter {
   private oramaClient: OramaClient
   private endpoint: string
   private abortController?: AbortController
+  private events: AnswerParams['events']
 
   constructor(params: AnswerParams) {
     super()
@@ -36,6 +42,7 @@ export class AnswerSession extends EventEmitter {
     this.oramaClient = params.oramaClient
     // @ts-expect-error - sorry TypeScript
     this.endpoint = `${this.oramaClient.endpoint}/answer?api-key=${this.oramaClient.api_key}`
+    this.events = params.events
   }
 
   public askStream(question: string, context: Context): AsyncGenerator<string> {
@@ -50,7 +57,10 @@ export class AnswerSession extends EventEmitter {
       result = message
     }
 
-    this.emit('message-change', this.messages)
+    if (this.events?.onMessageChange) {
+      this.events.onMessageChange(this.messages)
+    }
+
     return result
   }
 
@@ -105,7 +115,10 @@ export class AnswerSession extends EventEmitter {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
 
-    this.emit('message-loading', true)
+    if (this.events?.onMessageLoading) {
+      this.events.onMessageLoading(true)
+    }
+
     this.addNewEmptyAssistantMessage()
 
     const lastMessage = this.messages.at(-1) as Message
@@ -118,7 +131,11 @@ export class AnswerSession extends EventEmitter {
         }
         const decodedChunk = decoder.decode(value, { stream: true })
         lastMessage.content += decodedChunk
-        this.emit('message-change', this.messages)
+
+        if (this.events?.onMessageChange) {
+          this.events.onMessageChange(this.messages)
+        }
+
         yield lastMessage.content
       }
     } catch (err) {
@@ -129,6 +146,8 @@ export class AnswerSession extends EventEmitter {
       }
     }
 
-    this.emit('message-loading', false)
+    if (this.events?.onMessageLoading) {
+      this.events.onMessageLoading(false)
+    }
   }
 }

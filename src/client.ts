@@ -28,16 +28,20 @@ export type AnswerParams = {
   type: 'documentation'
   query: string
   messages: Array<{ role: 'user' | 'system'; content: string }>
-  // biome-ignore lint/suspicious/noExplicitAny: keep any for now
   context: Results<any>['hits']
 }
 
 export type ClientSearchParams = SearchParams<AnyOrama> & AdditionalSearchParams
 
 export type AnswerSessionParams = {
-  inferenceType: InferenceType
-  initialMessages: Message[]
-  mode: Mode
+  inferenceType?: InferenceType
+  initialMessages?: Message[]
+  mode?: Mode
+  events?: {
+    onMessageChange?: (messages: Message[]) => void
+    onMessageLoading?: (receivingMessage: boolean) => void
+    onAnswerAborted?: (aborted: true) => void
+  }
 }
 
 export class OramaClient {
@@ -207,7 +211,8 @@ export class OramaClient {
       inferenceType: params?.inferenceType || 'documentation',
       initialMessages: params?.initialMessages || [],
       mode: params?.mode || 'fulltext',
-      oramaClient: this
+      oramaClient: this,
+      events: params?.events
     })
   }
 
@@ -284,3 +289,20 @@ export class OramaClient {
     return await res.json()
   }
 }
+
+const client = new OramaClient({
+  endpoint: 'https://cloud.orama.foo/v1/indexes/test-answer-dalfkj',
+  api_key: '5thXEia7alVyZaomQwbtFdAZuztPMHIt'
+})
+
+const session = client.createAnswerSession({
+  events: {
+    onAnswerAborted: (aborted: true) => console.log({ aborted }),
+    onMessageChange: (messages: Message[]) => console.log({ messages }),
+    onMessageLoading: (receivingMessage: boolean) => console.log({ receivingMessage })
+  }
+})
+
+const results = await client.search({ term: 'Pinscher' })
+
+await session.ask('What is the best guarding dog?', results.hits)
