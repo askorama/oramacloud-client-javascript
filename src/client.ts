@@ -83,6 +83,7 @@ export class OramaClient {
 
   public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<AnyDocument>>> {
     await this.initPromise
+
     const currentRequestNumber = ++this.searchRequestCounter
     const cacheKey = `search-${JSON.stringify(query)}`
 
