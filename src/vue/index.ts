@@ -3,6 +3,7 @@ import { OramaClient, ClientSearchParams } from "../client.js";
 import { onMounted, ref, shallowRef, toValue, watchEffect } from "vue";
 import type { ComputedRef, MaybeRefOrGetter, Ref } from "vue";
 import { omit } from "lodash";
+import { IOramaClient } from "../types.js";
 interface UseSearch {
   ready: Ref<boolean>;
   results: Ref<Nullable<Results<AnyDocument>>>;
@@ -10,33 +11,28 @@ interface UseSearch {
 }
 
 type MaybeRef<T> = MaybeRefOrGetter<T> | ComputedRef<T>;
-// type Client = Omit<OramaClient, "id"> & {
-//   id: any;
-// };
-
-type Client = any;
 type useSearchParams = {
   [key in keyof ClientSearchParams]: MaybeRef<ClientSearchParams[key]>;
 } & {
-  client: Client;
+  cloudConfig: IOramaClient;
 };
 
 export function useSearch(query: useSearchParams): UseSearch {
   const ready = ref(false);
   const results: Ref<Nullable<Results<AnyDocument>>> = shallowRef(null);
   const error: Ref<Nullable<Error>> = ref(null);
-  const client: Ref<any | undefined> = shallowRef();
+  const client: Ref<OramaClient | undefined> = shallowRef();
 
   onMounted(() => {
-    if (!query.client) {
-      throw new Error("No client was passed");
+    if (!query.cloudConfig) {
+      throw new Error("No config was passed");
     }
     ready.value = true;
-    client.value = query.client;
+    client.value = new OramaClient(query.cloudConfig);
   });
 
   watchEffect(() => {
-    const valuedParams = Object.keys(omit(query, "client")).reduce(
+    const valuedParams = Object.keys(omit(query, "cloudConfig")).reduce(
       (acc: any, curr) => {
         const currTyped = curr as keyof useSearchParams;
         acc[currTyped] = toValue(query[currTyped]);
