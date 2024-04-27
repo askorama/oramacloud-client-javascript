@@ -45,10 +45,7 @@ export function useSearch(query: useSearchParams): UseSearch {
     if (client.value) {
       (client.value as OramaClient)
         .search(valuedParams)
-        .then((res) => {
-          results.value = res;
-          console.log("updated results");
-        })
+        .then((res) => (results.value = res))
         .catch((e) => (error.value = e));
     }
   });
