@@ -170,20 +170,7 @@ function Search() {
 
 ## With Vue
 
-### Set up Orama Cloud singleton
-
-Create an orama.ts file in the src folder to create an Orama Cloud Client instance that you’ll use throughout your application.
-
-```ts
-import { OramaClient } from "@oramacloud/client";
-
-export const client = new OramaCloud({
-  apiKey: "<Your Orama Cloud API Key>",
-  endpoint: "<Your Orama Cloud Endpoint>",
-});
-```
-
-### Use the client instance in your component
+Import the composable into your component and it's ready to use.
 
 ```jsx
 <template>
@@ -197,7 +184,10 @@ import { useSearch } from "@oramacloud/client/vue";
 import { orama } from './orama'
 
 const { results } = useSearch({
-  client,
+  cloudConfig: {
+    apiKey: "<Your Orama Cloud API Key>",
+    endpoint: "<Your Orama Cloud Endpoint>",
+  },
   term: "guitar",
   limit: 5
 });
