@@ -275,7 +275,6 @@ export class OramaClient {
         .map(([key, value]) => `${key}=${encodeURIComponent(JSON.stringify(value))}`)
         .join('&')
     }
-
     const res: Response = await fetch(`${this.endpoint}/${path}?api-key=${this.api_key}`, requestOptions)
 
     if (!res.ok) {

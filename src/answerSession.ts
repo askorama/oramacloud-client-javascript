@@ -90,21 +90,22 @@ export class AnswerSession {
 
   private async *fetchAnswer(query: string, context: Context): AsyncGenerator<string> {
     this.abortController = new AbortController()
-    const { signal } = this.abortController
 
-    const requestBody = {
-      type: this.inferenceType,
-      messages: this.messages,
-      context,
-      query
-    }
+    const { signal } = this.abortController
+    const contextDocuments = context.map((hit) => hit.document)
+    const requestBody = new URLSearchParams()
+
+    requestBody.append('type', this.inferenceType)
+    requestBody.append('messages', JSON.stringify(this.messages))
+    requestBody.append('context', JSON.stringify(contextDocuments))
+    requestBody.append('query', query)
 
     const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: JSON.stringify(requestBody),
+      body: requestBody,
       signal
     })
 
