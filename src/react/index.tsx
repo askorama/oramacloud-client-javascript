@@ -2,6 +2,8 @@ import type { Results, Nullable, AnyDocument } from '@orama/orama'
 import { OramaClient, ClientSearchParams } from '../client.js'
 import React, { useState, useEffect, createContext, useContext } from 'react'
 
+export { useAnswerSession } from './useAnswerSession.jsx'
+
 interface IOramaCloudContext {
   endpoint: string
   apiKey: string
