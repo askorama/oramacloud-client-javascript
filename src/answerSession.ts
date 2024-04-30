@@ -10,7 +10,7 @@ export type Message = {
 
 export type InferenceType = 'documentation'
 
-type AnswerParams = {
+export type AnswerParams = {
   initialMessages: Message[]
   inferenceType: InferenceType
   oramaClient: OramaClient

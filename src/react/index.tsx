@@ -37,6 +37,7 @@ export function useSearch(query: ClientSearchParams): UseSearch {
   const [results, setResults] = useState<Nullable<Results<AnyDocument>>>(null)
   const [error, setError] = useState<Nullable<Error>>(null)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only want to run this once
   useEffect(() => {
     setClient(new OramaClient({ api_key: apiKey, endpoint }))
     setReady(true)
