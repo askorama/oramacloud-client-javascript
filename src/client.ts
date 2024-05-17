@@ -50,8 +50,7 @@ export class OramaClient {
   private readonly endpoint: string
   private readonly collector?: Collector
   private readonly cache?: Cache<Results<AnyDocument>>
-  private abortController?: AbortController
-  private searchDebounceTimer?: NodeJS.Timer
+  private searchDebounceTimer?: any // NodeJS.Timer
   private searchRequestCounter = 0
 
   private heartbeat?: HeartBeat
@@ -87,7 +86,7 @@ export class OramaClient {
     const currentRequestNumber = ++this.searchRequestCounter
     const cacheKey = `search-${JSON.stringify(query)}`
 
-    let searchResults: Results<AnyDocument>
+    let searchResults: Nullable<Results<AnyDocument>> = null
     let roundTripTime: number
     let cached = false
     const shouldUseCache = config?.fresh !== true && this.cache?.has(cacheKey)
@@ -95,7 +94,7 @@ export class OramaClient {
     const performSearch = async () => {
       try {
         const timeStart = Date.now()
-        searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, this.abortController)
+        searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, config?.abortController)
         const timeEnd = Date.now()
         searchResults.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
         roundTripTime = timeEnd - timeStart
