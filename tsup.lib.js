@@ -13,5 +13,6 @@ export default defineConfig({
   dts: true,
   clean: true,
   bundle: true,
-  outDir
+  outDir,
+  noExternal: ['@orama']
 })
