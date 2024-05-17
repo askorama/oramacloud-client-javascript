@@ -26,7 +26,7 @@ await t.test('secure proxy', async t => {
       prompt: 'Subsequent request'
     });
   
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for the second stream to potentially yield data
+    // await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for the second stream to potentially yield data
   
     const secondResponse = await summaryStreamSecond.next();
     assert.ok(!secondResponse.done && secondResponse.value, 'Second request should yield data');
