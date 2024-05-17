@@ -1,6 +1,6 @@
 {
   "name": "@oramacloud/client",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Orama SDK for Node.js, Deno, and Browsers",
   "type": "module",
   "sideEffects": false,
