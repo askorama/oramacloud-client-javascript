@@ -49,13 +49,7 @@ export class AnswerSession {
 
   public async askStream(params: SearchParams<AnyOrama>): Promise<AsyncGenerator<string>> {
     this.messages.push({ role: 'user', content: params.term ?? '' })
-    const inferenceResult = await this.runInference(params)
-
-    if (this.events?.onSourceChange) {
-      this.events.onSourceChange(inferenceResult!)
-    }
-
-    return this.fetchAnswer(params.term ?? '', inferenceResult?.hits ?? [])
+    return this.fetchAnswer(params)
   }
 
   public async ask(params: SearchParams<AnyOrama>): Promise<string> {
@@ -92,21 +86,18 @@ export class AnswerSession {
     }
   }
 
-  private runInference(params: SearchParams<AnyOrama>) {
-    return this.oramaClient.search(params)
-  }
-
-  private async *fetchAnswer(query: string, context: Context): AsyncGenerator<string> {
+  private async *fetchAnswer(params: SearchParams<AnyOrama>): AsyncGenerator<string> {
     this.abortController = new AbortController()
 
     const requestBody = new URLSearchParams()
     requestBody.append('type', this.inferenceType)
     requestBody.append('messages', JSON.stringify(this.messages))
-    requestBody.append('query', query)
+    requestBody.append('query', params.term ?? '')
     requestBody.append('conversationId', this.conversationID)
     requestBody.append('userId', this.userID)
     // @ts-expect-error - yeah it's private but we need it here
     requestBody.append('endpoint', this.oramaClient.endpoint)
+    requestBody.append('searchParams', JSON.stringify(params))
 
     const response = await fetch(this.endpoint, {
       method: 'POST',
