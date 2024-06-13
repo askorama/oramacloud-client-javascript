@@ -6,7 +6,7 @@ import { OramaProxy } from '../src/proxy.js'
 import { OramaClient } from '../src/client.js'
 import 'dotenv/config.js'
 
-await t.skip('secure proxy', async t => {
+await t.test('secure proxy', async t => {
 
   await t.test('summaryStream should abort previous requests', async t => {
     const client = createProxy();
