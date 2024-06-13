@@ -150,6 +150,15 @@ export class AnswerSession {
           try {
             const event = parseSSE(rawMessage)
             const parsedMessage = JSON.parse(event.data)
+
+            if (parsedMessage.type === 'sources') {
+              if (this.events?.onSourceChange) {
+                this.events.onSourceChange(parsedMessage.message)
+                console.log(parsedMessage.message)
+              }
+              continue
+            }
+
             messageQueue.push(parsedMessage.message)
 
             if (parsedMessage.endOfBlock) {

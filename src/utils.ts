@@ -1,5 +1,18 @@
 export const hasLocalStorage = typeof localStorage !== 'undefined'
 
+type SSESourcePayload = {
+  type: 'sources'
+  message: object
+}
+
+type SSETextStreamPayload = {
+  type: 'text'
+  message: string
+  endOfBlock: boolean
+}
+
+type SSEParsedPayload = SSESourcePayload | SSETextStreamPayload
+
 type SSEPayload = {
   data: string
   event: string

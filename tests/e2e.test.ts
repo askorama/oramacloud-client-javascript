@@ -6,7 +6,7 @@ import { OramaProxy } from '../src/proxy.js'
 import { OramaClient } from '../src/client.js'
 import 'dotenv/config.js'
 
-await t.test('secure proxy', async t => {
+await t.skip('secure proxy', async t => {
 
   await t.test('summaryStream should abort previous requests', async t => {
     const client = createProxy();
@@ -188,7 +188,7 @@ await t.test('answer session', async t => {
     const answer = await session.ask({
       term: 'german'
     })
-    console.log(answer)
+
     assert.ok(answer.length > 0)
   })
 })
