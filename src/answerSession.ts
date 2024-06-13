@@ -1,5 +1,9 @@
 import type { Results, AnyDocument, SearchParams, AnyOrama } from '@orama/orama'
+import { createId } from '@paralleldrive/cuid2'
+import { Collector } from './collector.js'
+import { ORAMA_ANSWER_ENDPOINT } from './constants.js'
 import { OramaClient } from './client.js'
+import { parseSSE } from './utils.js'
 
 export type Context = Results<AnyDocument>['hits']
 
@@ -29,14 +33,18 @@ export class AnswerSession {
   private endpoint: string
   private abortController?: AbortController
   private events: AnswerParams['events']
+  private conversationID: string
+  private userID: string
 
   constructor(params: AnswerParams) {
     this.messages = params.initialMessages || []
     this.inferenceType = params.inferenceType
     this.oramaClient = params.oramaClient
     // @ts-expect-error - sorry TypeScript
-    this.endpoint = `${this.oramaClient.endpoint}/answer?api-key=${this.oramaClient.api_key}`
+    this.endpoint = `${ORAMA_ANSWER_ENDPOINT}/v1/answer?api-key=${this.oramaClient.api_key}`
     this.events = params.events
+    this.conversationID = createId()
+    this.userID = Collector.getUserID()
   }
 
   public async askStream(params: SearchParams<AnyOrama>): Promise<AsyncGenerator<string>> {
@@ -91,30 +99,32 @@ export class AnswerSession {
   private async *fetchAnswer(query: string, context: Context): AsyncGenerator<string> {
     this.abortController = new AbortController()
 
-    const { signal } = this.abortController
-    const contextDocuments = context.map((hit) => hit.document)
     const requestBody = new URLSearchParams()
-
     requestBody.append('type', this.inferenceType)
     requestBody.append('messages', JSON.stringify(this.messages))
-    requestBody.append('context', JSON.stringify(contextDocuments))
     requestBody.append('query', query)
+    requestBody.append('conversationId', this.conversationID)
+    requestBody.append('userId', this.userID)
+    // @ts-expect-error - yeah it's private but we need it here
+    requestBody.append('endpoint', this.oramaClient.endpoint)
 
     const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: requestBody,
-      signal
+      body: requestBody.toString(),
+      signal: this.abortController.signal
     })
 
-    if (!response.ok || response.body == null) {
-      throw response.statusText
+    if (!response.ok || !response.body) {
+      throw new Error(response.statusText)
     }
 
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
+    const messageQueue: string[] = []
+    let buffer = ''
 
     if (this.events?.onMessageLoading) {
       this.events.onMessageLoading(true)
@@ -127,17 +137,37 @@ export class AnswerSession {
     try {
       while (true) {
         const { value, done } = await reader.read()
-        if (done) {
-          break
-        }
-        const decodedChunk = decoder.decode(value, { stream: true })
-        lastMessage.content += decodedChunk
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
 
-        if (this.events?.onMessageChange) {
-          this.events.onMessageChange(this.messages)
-        }
+        let endOfMessageIndex
 
-        yield lastMessage.content
+        // biome-ignore lint/suspicious/noAssignInExpressions: this saves a variable allocation on each iteration
+        while ((endOfMessageIndex = buffer.indexOf('\n\n')) !== -1) {
+          const rawMessage = buffer.slice(0, endOfMessageIndex)
+          buffer = buffer.slice(endOfMessageIndex + 2)
+
+          try {
+            const event = parseSSE(rawMessage)
+            const parsedMessage = JSON.parse(event.data)
+            messageQueue.push(parsedMessage.message)
+
+            if (parsedMessage.endOfBlock) {
+              while (messageQueue.length > 0) {
+                lastMessage.content += messageQueue.shift()
+
+                if (this.events?.onMessageChange) {
+                  this.events.onMessageChange(this.messages)
+                }
+
+                yield lastMessage.content
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing SSE event:', e)
+            console.error('Raw message:', rawMessage)
+          }
+        }
       }
     } catch (err) {
       if ((err as any).name === 'AbortError') {
@@ -147,6 +177,8 @@ export class AnswerSession {
       } else {
         throw err
       }
+    } finally {
+      reader.releaseLock()
     }
 
     if (this.events?.onMessageLoading) {

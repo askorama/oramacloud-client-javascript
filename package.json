@@ -58,6 +58,7 @@
   "dependencies": {
     "@orama/orama": "^2.0.16",
     "@paralleldrive/cuid2": "^2.2.1",
+    "eventsource": "^2.0.2",
     "lodash": "^4.17.21",
     "openai": "^4.24.1",
     "react": "^18.2.0",
@@ -66,6 +67,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.4.1",
     "@fastify/formbody": "^7.4.0",
+    "@types/eventsource": "^1.1.15",
     "@types/lodash": "^4.14.202",
     "@types/node": "^20.3.1",
     "@types/react": "^18.2.14",
