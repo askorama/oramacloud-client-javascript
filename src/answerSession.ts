@@ -154,7 +154,6 @@ export class AnswerSession {
             if (parsedMessage.type === 'sources') {
               if (this.events?.onSourceChange) {
                 this.events.onSourceChange(parsedMessage.message)
-                console.log(parsedMessage.message)
               }
               continue
             }
