@@ -1,4 +1,6 @@
 import type { SearchEvent, ICollector, TelemetryConfig } from './types.js'
+import { createId } from '@paralleldrive/cuid2'
+import { LOCAL_STORAGE_USER_ID_KEY, LOCAL_STORAGE_SERVER_SIDE_SESSION_KEY } from './constants.js'
 import pkg from '../package.json'
 import sendBeacon from './sendBeacon.js'
 
@@ -66,6 +68,24 @@ export class Collector {
     }
 
     sendBeacon(this.params.endpoint + `?api-key=${this.config.api_key}`, JSON.stringify(body))?.catch((err) => console.log(err))
+  }
+
+  static getUserID(): string {
+    if (typeof localStorage === 'undefined') {
+      return LOCAL_STORAGE_SERVER_SIDE_SESSION_KEY
+    }
+
+    const userID = localStorage.getItem(LOCAL_STORAGE_USER_ID_KEY)
+
+    if (userID) {
+      return userID
+    }
+
+    const newUserID = createId()
+
+    localStorage.setItem(LOCAL_STORAGE_USER_ID_KEY, newUserID)
+
+    return newUserID
   }
 
   private start(): void {
