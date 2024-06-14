@@ -1,7 +1,9 @@
 import type { SummaryParams } from '../src/proxy.js'
+
 import t from 'node:test'
 import assert from 'node:assert'
 import { OramaProxy } from '../src/proxy.js'
+import { OramaClient } from '../src/client.js'
 import 'dotenv/config.js'
 
 await t.test('secure proxy', async t => {
@@ -174,3 +176,19 @@ function createProxy() {
     api_key: process.env.ORAMA_SECURE_PROXY_API_KEY_TEST || ''
   })
 }
+
+await t.test('answer session', async t => {
+  const client = new OramaClient({
+    endpoint: 'https://cloud.orama.run/v1/indexes/e2e-index-client-rv4bdd',
+    api_key: 'eaXWAKLxn05lefXAfB3wAhuTq3VaXGqx'
+  })
+
+  await t.test('can create an answer session', async t => {
+    const session = client.createAnswerSession()
+    const answer = await session.ask({
+      term: 'german'
+    })
+
+    assert.ok(answer.length > 0)
+  })
+})
