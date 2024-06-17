@@ -41,14 +41,12 @@ export function debounce(func: (...args: any[]) => any, delay: number) {
   }
 }
 
-export function parseSSE(data: string): SSEPayload {
-  const lines = data.split('\n')
-  const obj: Record<string, string> = {}
-  for (const line of lines) {
-    const [key, value] = line.split(': ')
-    if (key) {
-      obj[key] = value
-    }
+export function parseSSE(input: string): SSEPayload {
+  const [event, ...data] = input.split('\n')
+  const eventData = data.join('\n').replace('data: ', '')
+
+  return {
+    event: event.replace('event: ', ''),
+    data: eventData
   }
-  return obj as SSEPayload
 }

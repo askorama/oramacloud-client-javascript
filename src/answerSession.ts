@@ -151,16 +151,16 @@ export class AnswerSession {
 
             messageQueue.push(parsedMessage.message)
 
-            if (parsedMessage.endOfBlock) {
-              while (messageQueue.length > 0) {
-                lastMessage.content += messageQueue.shift()
+            // Process the message queue immediately, regardless of endOfBlock
+            while (messageQueue.length > 0) {
+              lastMessage.content += messageQueue.shift()
 
-                if (this.events?.onMessageChange) {
-                  this.events.onMessageChange(this.messages)
-                }
-
-                yield lastMessage.content
+              if (this.events?.onMessageChange) {
+                console.log('onMessageChange is defined')
+                this.events.onMessageChange(this.messages)
               }
+
+              yield lastMessage.content
             }
           } catch (e) {
             console.error('Error parsing SSE event:', e)

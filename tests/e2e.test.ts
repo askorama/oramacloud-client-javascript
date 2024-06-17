@@ -185,6 +185,7 @@ await t.test('answer session', async t => {
 
   await t.test('can create an answer session', async t => {
     const session = client.createAnswerSession()
+
     const answer = await session.ask({
       term: 'german'
     })
