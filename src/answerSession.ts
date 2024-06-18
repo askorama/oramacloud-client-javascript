@@ -156,7 +156,6 @@ export class AnswerSession {
               lastMessage.content += messageQueue.shift()
 
               if (this.events?.onMessageChange) {
-                console.log('onMessageChange is defined')
                 this.events.onMessageChange(this.messages)
               }
 
