@@ -48,6 +48,7 @@ export class OramaClient {
   private readonly id = createId()
   private readonly api_key: string
   private readonly endpoint: string
+  private readonly devMode: boolean
   private readonly collector?: Collector
   private readonly cache?: Cache<Results<AnyDocument>>
   private searchDebounceTimer?: any // NodeJS.Timer
@@ -59,6 +60,7 @@ export class OramaClient {
   constructor(params: IOramaClient) {
     this.api_key = params.api_key
     this.endpoint = params.endpoint
+    this.devMode = !!params.devMode
 
     // Telemetry is enabled by default
     if (params.telemetry !== false) {

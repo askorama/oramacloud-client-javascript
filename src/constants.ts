@@ -6,6 +6,8 @@ export const DEFAULT_TELEMETRY_FLUSH_SIZE = 25
 
 export const ORAMA_ANSWER_ENDPOINT = 'https://answer.api.orama.com'
 
+export const ORAMA_ANSWER_ENDPOINT_STAGING = 'https://staging.answer.api.orama.com'
+
 export const ORAMA_PROXY_ENDPOINT = 'https://secure-proxy.orama.run'
 export const ORAMA_PROXY_INIT_ENDPOINT = '/init'
 export const ORAMA_PROXY_CHAT_ENDPOINT = '/chat'
