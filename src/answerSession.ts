@@ -1,7 +1,7 @@
 import type { Results, AnyDocument, SearchParams, AnyOrama } from '@orama/orama'
 import { createId } from '@paralleldrive/cuid2'
 import { Collector } from './collector.js'
-import { ORAMA_ANSWER_ENDPOINT, ORAMA_ANSWER_ENDPOINT_STAGING } from './constants.js'
+import { ORAMA_ANSWER_ENDPOINT } from './constants.js'
 import { OramaClient } from './client.js'
 import { parseSSE } from './utils.js'
 
@@ -38,7 +38,7 @@ export class AnswerSession {
 
   constructor(params: AnswerParams) {
     // @ts-expect-error - sorry again TypeScript :-)
-    const oaramaAnswerHostAddress = params.oramaClient.devMode ? ORAMA_ANSWER_ENDPOINT_STAGING : ORAMA_ANSWER_ENDPOINT
+    const oaramaAnswerHostAddress = params.oramaClient.answersApiBaseURL || ORAMA_ANSWER_ENDPOINT
 
     this.messages = params.initialMessages || []
     this.inferenceType = params.inferenceType
