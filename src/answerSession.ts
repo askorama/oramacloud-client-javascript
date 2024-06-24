@@ -37,11 +37,14 @@ export class AnswerSession {
   private userID: string
 
   constructor(params: AnswerParams) {
+    // @ts-expect-error - sorry again TypeScript :-)
+    const oaramaAnswerHostAddress = params.oramaClient.answersApiBaseURL || ORAMA_ANSWER_ENDPOINT
+
     this.messages = params.initialMessages || []
     this.inferenceType = params.inferenceType
     this.oramaClient = params.oramaClient
     // @ts-expect-error - sorry TypeScript
-    this.endpoint = `${ORAMA_ANSWER_ENDPOINT}/v1/answer?api-key=${this.oramaClient.api_key}`
+    this.endpoint = `${oaramaAnswerHostAddress}/v1/answer?api-key=${this.oramaClient.api_key}`
     this.events = params.events
     this.conversationID = createId()
     this.userID = Collector.getUserID()
