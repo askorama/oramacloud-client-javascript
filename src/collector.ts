@@ -4,7 +4,7 @@ import { LOCAL_STORAGE_USER_ID_KEY, LOCAL_STORAGE_SERVER_SIDE_SESSION_KEY } from
 import pkg from '../package.json'
 import sendBeacon from './sendBeacon.js'
 
-type Data = object[]
+type Data = any[]
 
 export class Collector {
   private data: Data

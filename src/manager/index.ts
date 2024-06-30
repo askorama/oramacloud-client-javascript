@@ -1,4 +1,4 @@
-import type { Nullable } from '@orama/orama'
+import type { Nullable, insert } from '@orama/orama'
 import type { Endpoint, Method } from './types.js'
 import { IndexManager } from './index-manager.js'
 import { API_V1_BASE_URL } from './constants.js'
@@ -16,6 +16,20 @@ type CallConfig = {
   body?: string
 }
 
+type Payload = UpsertPayload | RemovePayload | InsertPayload
+
+type UpsertPayload = {
+  upsert: any[]
+}
+
+type RemovePayload = {
+  remove: any[]
+}
+
+type InsertPayload = {
+  insert: any[]
+}
+
 export class CloudManager {
   private indexId: Nullable<string> = null
   private apiKey: string
@@ -25,10 +39,14 @@ export class CloudManager {
   }
 
   newIndexManager(indexId: string): IndexManager {
-    return new IndexManager({ manager: this }).index(indexId)
+    return new IndexManager({ manager: this, indexID: indexId })
   }
 
-  callIndexWebhook(endpoint: Endpoint, payload?: object): Promise<Response> {
+  setIndexID(id: string) {
+    this.indexId = id
+  }
+
+  async callIndexWebhook<T = unknown>(endpoint: Endpoint, payload?: T): Promise<Response> {
     const config: CallConfig = {
       method: 'POST',
       headers: {
@@ -41,6 +59,9 @@ export class CloudManager {
       config.body = JSON.stringify(payload)
     }
 
-    return fetch(`${API_V1_BASE_URL}/webhooks/${this.indexId}/${endpoint}`, config)
+    const resp = await fetch(`${API_V1_BASE_URL}/webhooks/${this.indexId}/${endpoint}`, config)
+
+    return resp.json()
   }
 }
+
