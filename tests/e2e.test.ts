@@ -4,6 +4,7 @@ import t from 'node:test'
 import assert from 'node:assert'
 import { OramaProxy } from '../src/proxy.js'
 import { OramaClient } from '../src/client.js'
+import { CloudManager } from '../src/manager/index.js'
 import 'dotenv/config.js'
 
 await t.test('secure proxy', async t => {
@@ -178,9 +179,15 @@ function createProxy() {
 }
 
 await t.test('answer session', async t => {
+
+  if (!process.env.ORAMA_E2E_ENDPOINT || !process.env.ORAMA_E2E_API_KEY) {
+    t.skip('ORAMA_E2E_ENDPOINT and ORAMA_E2E_API_KEY are not set. E2e tests will be skipped.')
+    return
+  }
+
   const client = new OramaClient({
-    endpoint: 'https://cloud.orama.run/v1/indexes/e2e-index-client-rv4bdd',
-    api_key: 'eaXWAKLxn05lefXAfB3wAhuTq3VaXGqx'
+    endpoint: process.env.ORAMA_E2E_ENDPOINT!,
+    api_key: process.env.ORAMA_E2E_API_KEY!
   })
 
   await t.test('can create an answer session', async t => {
@@ -191,5 +198,68 @@ await t.test('answer session', async t => {
     })
 
     assert.ok(answer.length > 0)
+  })
+})
+
+await t.test('can use the manager APIs', async t => {
+  if (!process.env.ORAMA_E2E_ENDPOINT || !process.env.ORAMA_E2E_API_KEY || !process.env.ORAMA_E2E_PRIVATE_API_KEY || !process.env.ORAMA_E2E_INDEX_ID) {
+    t.skip('One or more of ORAMA_E2E_ENDPOINT, ORAMA_E2E_API_KEY, ORAMA_E2E_PRIVATE_API_KEY, ORAMA_E2E_INDEX_ID are not set. E2e tests will be skipped.')
+    return
+  }
+
+  const manager = new CloudManager({
+    api_key: process.env.ORAMA_E2E_PRIVATE_API_KEY!
+  })
+
+  const indexManager = manager.index(process.env.ORAMA_E2E_INDEX_ID)
+
+  await t.test('should be able to empty the index', async t => {
+    const isEmpty = await indexManager.empty()
+    assert.ok(isEmpty)
+  })
+
+  await t.test('should be able to insert some data', async t => {
+    const success = await indexManager.insert([
+      {
+        id: '1',
+        breed: "Orama Retriever",
+        country: "Italy",
+        longevity: 100,
+        character: [
+          "Easy to use",
+          "Fast",
+        ],
+        colors: {
+          fur: [],
+          eyes: []
+        }
+      },
+      {
+        id: '2',
+        breed: "To be removed",
+        country: "Italy",
+        longevity: 100,
+        character: [],
+        colors: {
+          fur: [],
+          eyes: []
+        }
+      }
+    ])
+    assert.ok(success)
+  })
+
+  await t.test('should be able to remove some data', async t => {
+    const success = await indexManager.delete([
+      {
+        id: '2'
+      }
+    ])
+    assert.ok(success)
+  })
+
+  await t.test('should be able to deploy the index', async t => {
+    const success = await indexManager.deploy()
+    assert.ok(success)
   })
 })
