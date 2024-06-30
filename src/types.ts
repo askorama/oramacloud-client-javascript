@@ -28,6 +28,7 @@ export interface OramaInitResponse {
 export interface IOramaClient {
   api_key: string
   endpoint: string
+  answersApiBaseURL?: string
   telemetry?: Partial<TelemetryConfig> | false
   cache?: Partial<CacheConfig> | false
 }

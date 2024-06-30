@@ -1,3 +1,4 @@
+import type { Nullable } from '@orama/orama'
 import type { OpenAI } from 'openai'
 import type { IOramaProxy } from './types.js'
 import * as CONST from './constants.js'
@@ -11,6 +12,15 @@ export type ChatParams = {
   model: ChatModel
 }
 
+export type SummaryParams = {
+  prompt: string
+  docIDs: string[]
+  indexID: string
+  model: ChatModel
+  deploymentID?: string
+  fresh?: boolean
+}
+
 const OPENAI_EMBEDDINGS_MODEL_ADA = 'text-embedding-ada-002'
 const OPENAI_EMBEDDINGS_MODEL_3_SMALL = 'text-embedding-3-small'
 const OPENAI_EMBEDDINGS_MODEL_3_LARGE = 'text-embedding-3-large'
@@ -18,10 +28,13 @@ const ORAMA_EMBEDDINGS_MODEL_GTE_SMALL = 'gte-small'
 const ORAMA_EMBEDDINGS_MODEL_GTE_MEDIUM = 'gte-medium'
 const ORAMA_EMBEDDINGS_MODEL_GTE_LARGE = 'gte-large'
 
+const OPENAI_CHAT_MODE_GPT_4_0125_PREVIEW = 'gpt-4-0125-preview'
 const OPENAI_CHAT_MODEL_GPT4_1106_PREVIEW = 'gpt-4-1106-preview'
+const OPENAI_CHAT_MODEL_GPT4_TURBO_PREVIEW = 'gpt-4-turbo-preview	'
 const OPENAI_CHAT_MODEL_GPT4 = 'gpt-4'
 const OPENAI_CHAT_MODEL_GPT3_5_TURBO = 'gpt-3.5-turbo'
 const OPENAI_CHAT_MODEL_GPT3_3_5_TURBO_16K = 'gpt-3.5-turbo-16k'
+const OPENAI_CHAT_MODEL_GPT3_3_5_TURBO_0125 = 'gpt-3.5-turbo-0125	'
 
 const embeddingsModels = {
   [`openai/${OPENAI_EMBEDDINGS_MODEL_ADA}`]: `openai/${OPENAI_EMBEDDINGS_MODEL_ADA}`,
@@ -36,7 +49,10 @@ const chatModels = {
   [`openai/${OPENAI_CHAT_MODEL_GPT3_5_TURBO}`]: OPENAI_CHAT_MODEL_GPT3_5_TURBO,
   [`openai/${OPENAI_CHAT_MODEL_GPT4}`]: OPENAI_CHAT_MODEL_GPT4,
   [`openai/${OPENAI_CHAT_MODEL_GPT3_3_5_TURBO_16K}`]: OPENAI_CHAT_MODEL_GPT3_3_5_TURBO_16K,
-  [`openai/${OPENAI_CHAT_MODEL_GPT4_1106_PREVIEW}`]: OPENAI_CHAT_MODEL_GPT4_1106_PREVIEW
+  [`openai/${OPENAI_CHAT_MODEL_GPT4_1106_PREVIEW}`]: OPENAI_CHAT_MODEL_GPT4_1106_PREVIEW,
+  [`openai/${OPENAI_CHAT_MODE_GPT_4_0125_PREVIEW}`]: OPENAI_CHAT_MODE_GPT_4_0125_PREVIEW,
+  [`openai/${OPENAI_CHAT_MODEL_GPT4_TURBO_PREVIEW}`]: OPENAI_CHAT_MODEL_GPT4_TURBO_PREVIEW,
+  [`openai/${OPENAI_CHAT_MODEL_GPT3_3_5_TURBO_0125}`]: OPENAI_CHAT_MODEL_GPT3_3_5_TURBO_0125
 }
 
 export class OramaProxy {
@@ -44,6 +60,7 @@ export class OramaProxy {
   private ready: Promise<boolean>
   private readonly api_key: string
   private publicKey?: CryptoKey
+  private summaryAbortController?: Nullable<AbortController> = null
 
   constructor(params: IOramaProxy) {
     this.api_key = params.api_key
@@ -64,7 +81,7 @@ export class OramaProxy {
       return []
     }
 
-    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_EMBEDDINGS_ENDPOINT}?apiKey=${this.api_key}`
+    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_EMBEDDINGS_ENDPOINT}?apiKey=${encodeURIComponent(this.api_key)}`
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -82,6 +99,79 @@ export class OramaProxy {
     }
 
     return embeddings
+  }
+
+  public async *summaryStream(params: SummaryParams): AsyncGenerator<string> {
+    const isReady = await this.ready
+
+    if (!isReady) {
+      console.log('OramaProxy had an error during the initialization')
+      return
+    }
+
+    // Abort previous request and initiate a new AbortController.
+    // This will allow us to cancel the request when a new one is made.
+    if (this.summaryAbortController) {
+      this.summaryAbortController.abort()
+    }
+
+    this.summaryAbortController = new AbortController()
+
+    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_SUMMARY_ENDPOINT}?apiKey=${encodeURIComponent(this.api_key)}`
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: new URLSearchParams({
+          prompt: params.prompt,
+          cache: params.fresh ? 'false' : 'true',
+          docIDs: JSON.stringify(params.docIDs),
+          indexID: params.indexID,
+          deploymentID: params.deploymentID ?? '',
+          csrf: this.CSRFToken,
+          model: chatModels[params.model]
+        }).toString(),
+        signal: this.summaryAbortController?.signal
+      })
+
+      if (!response.ok || response.body == null) {
+        throw response.statusText
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) {
+          break
+        }
+        const decodedChunk = decoder.decode(value, { stream: true })
+        yield decodedChunk
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        throw error
+      }
+    }
+  }
+
+  public async summary(params: SummaryParams): Promise<string> {
+    const isReady = await this.ready
+
+    if (!isReady) {
+      console.log('OramaProxy had an error during the initialization')
+      return ''
+    }
+
+    let response = ''
+
+    for await (const msg of this.summaryStream(params)) {
+      response += msg
+    }
+
+    return response
   }
 
   public async chat(params: ChatParams): Promise<string> {
@@ -102,7 +192,14 @@ export class OramaProxy {
   }
 
   public async *chatStream(params: ChatParams): AsyncGenerator<string> {
-    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_CHAT_ENDPOINT}?apiKey=${this.api_key}`
+    const isReady = await this.ready
+
+    if (!isReady) {
+      console.log('OramaProxy had an error during the initialization')
+      return ''
+    }
+
+    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_CHAT_ENDPOINT}?apiKey=${encodeURIComponent(this.api_key)}`
 
     let messages = params.messages
     if (this.publicKey) {
@@ -151,7 +248,7 @@ export class OramaProxy {
   }
 
   private async init() {
-    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_INIT_ENDPOINT}?apiKey=${this.api_key}`
+    const endpoint = `${CONST.ORAMA_PROXY_ENDPOINT}${CONST.ORAMA_PROXY_INIT_ENDPOINT}?apiKey=${encodeURIComponent(this.api_key)}`
     const response = await fetch(endpoint, {
       headers: {
         referer: this.getReferrer()

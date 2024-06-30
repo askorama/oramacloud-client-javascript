@@ -1,8 +1,10 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError } from './types.js'
 import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
+import type { Message, InferenceType } from './answerSession.js'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
 
+import { AnswerSession } from './answerSession.js'
 import { Cache } from './cache.js'
 import * as CONST from './constants.js'
 import { Collector } from './collector.js'
@@ -22,16 +24,34 @@ type AdditionalSearchParams = {
   returning?: string[]
 }
 
+export type AnswerParams = {
+  type: 'documentation'
+  query: string
+  messages: Array<{ role: 'user' | 'system'; content: string }>
+  context: Results<any>['hits']
+}
+
 export type ClientSearchParams = SearchParams<AnyOrama> & AdditionalSearchParams
+
+export type AnswerSessionParams = {
+  inferenceType?: InferenceType
+  initialMessages?: Message[]
+  events?: {
+    onMessageChange?: (messages: Message[]) => void
+    onMessageLoading?: (receivingMessage: boolean) => void
+    onAnswerAborted?: (aborted: true) => void
+    onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
+  }
+}
 
 export class OramaClient {
   private readonly id = createId()
   private readonly api_key: string
   private readonly endpoint: string
+  private readonly answersApiBaseURL: string | undefined
   private readonly collector?: Collector
   private readonly cache?: Cache<Results<AnyDocument>>
-  private abortController?: AbortController
-  private searchDebounceTimer?: NodeJS.Timer
+  private searchDebounceTimer?: any // NodeJS.Timer
   private searchRequestCounter = 0
 
   private heartbeat?: HeartBeat
@@ -40,6 +60,7 @@ export class OramaClient {
   constructor(params: IOramaClient) {
     this.api_key = params.api_key
     this.endpoint = params.endpoint
+    this.answersApiBaseURL = params.answersApiBaseURL
 
     // Telemetry is enabled by default
     if (params.telemetry !== false) {
@@ -67,7 +88,7 @@ export class OramaClient {
     const currentRequestNumber = ++this.searchRequestCounter
     const cacheKey = `search-${JSON.stringify(query)}`
 
-    let searchResults: Results<AnyDocument>
+    let searchResults: Nullable<Results<AnyDocument>> = null
     let roundTripTime: number
     let cached = false
     const shouldUseCache = config?.fresh !== true && this.cache?.has(cacheKey)
@@ -75,7 +96,7 @@ export class OramaClient {
     const performSearch = async () => {
       try {
         const timeStart = Date.now()
-        searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, this.abortController)
+        searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, config?.abortController)
         const timeEnd = Date.now()
         searchResults.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
         roundTripTime = timeEnd - timeStart
@@ -186,6 +207,15 @@ export class OramaClient {
     return searchResults
   }
 
+  public createAnswerSession(params?: AnswerSessionParams) {
+    return new AnswerSession({
+      inferenceType: params?.inferenceType || 'documentation',
+      initialMessages: params?.initialMessages || [],
+      oramaClient: this,
+      events: params?.events
+    })
+  }
+
   public startHeartBeat(config: HeartBeatConfig): void {
     this.heartbeat?.stop()
     this.heartbeat = new HeartBeat({
@@ -238,7 +268,6 @@ export class OramaClient {
     }
 
     if (method === 'POST' && body !== undefined) {
-      // biome-ignore lint/suspicious/noExplicitAny: keep any for now
       const b = body as any
       b.version = version
       b.id = this.id
@@ -247,7 +276,6 @@ export class OramaClient {
         .map(([key, value]) => `${key}=${encodeURIComponent(JSON.stringify(value))}`)
         .join('&')
     }
-
     const res: Response = await fetch(`${this.endpoint}/${path}?api-key=${this.api_key}`, requestOptions)
 
     if (!res.ok) {

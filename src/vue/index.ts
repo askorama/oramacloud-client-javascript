@@ -1,50 +1,55 @@
 import type { Results, Nullable, AnyDocument } from '@orama/orama'
-import type { OramaClient, ClientSearchParams } from '../client.js'
-
-interface IOramaCloudData {
-  endpoint: string
-  apiKey: string
-}
-
+import { OramaClient, ClientSearchParams } from '../client.js'
+import { onMounted, ref, shallowRef, toValue, watchEffect } from 'vue'
+import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue'
+import { omit } from 'lodash'
+import { IOramaClient } from '../types.js'
 interface UseSearch {
-  ready: boolean
-  results: Nullable<Results<AnyDocument>>
-  error: Nullable<Error>
+  ready: Ref<boolean>
+  results: Ref<Nullable<Results<AnyDocument>>>
+  error: Ref<Nullable<Error>>
 }
 
-export class OramaCloud {
-  apiKey: string
-  endpoint: string
-  client: OramaClient
+type MaybeRef<T> = MaybeRefOrGetter<T> | ComputedRef<T>
+type useSearchParams = {
+  [key in keyof ClientSearchParams]: MaybeRef<ClientSearchParams[key]>
+} & {
+  cloudConfig: IOramaClient
+}
 
-  constructor(clientData: IOramaCloudData) {
-    this.apiKey = clientData.apiKey
-    this.endpoint = clientData.endpoint
-    try {
-      this.client = new OramaClient({ api_key: this.apiKey, endpoint: this.endpoint })
-    } catch (e: any) {
-      throw new Error(e)
+export function useSearch(query: useSearchParams): UseSearch {
+  const ready = ref(false)
+  const results: Ref<Nullable<Results<AnyDocument>>> = shallowRef(null)
+  const error: Ref<Nullable<Error>> = ref(null)
+  const client: Ref<OramaClient | undefined> = shallowRef()
+
+  onMounted(() => {
+    if (!query.cloudConfig) {
+      throw new Error('No config was passed')
     }
-  }
+    ready.value = true
+    client.value = new OramaClient(query.cloudConfig)
+  })
 
-  async search(query: ClientSearchParams): Promise<UseSearch> {
-    let ready = false
-    let results: Nullable<Results<AnyDocument>> = null
-    let error: Nullable<Error> = null
+  watchEffect(() => {
+    const valuedParams = Object.keys(omit(query, 'cloudConfig')).reduce((acc: any, curr) => {
+      const currTyped = curr as keyof useSearchParams
+      acc[currTyped] = toValue(query[currTyped])
 
-    ready = true
+      return acc
+    }, {}) as ClientSearchParams
 
-    try {
-      const oramaResults = await this.client?.search(query)
-      results = oramaResults
-    } catch (e: any) {
-      error = e
+    if (client.value) {
+      ;(client.value as OramaClient)
+        .search(valuedParams)
+        .then((res) => (results.value = res))
+        .catch((e) => (error.value = e))
     }
+  })
 
-    return {
-      ready,
-      results,
-      error
-    }
+  return {
+    ready,
+    results,
+    error
   }
 }
