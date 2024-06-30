@@ -211,7 +211,7 @@ await t.test('can use the manager APIs', async t => {
     api_key: process.env.ORAMA_E2E_PRIVATE_API_KEY!
   })
 
-  const indexManager = manager.newIndexManager(process.env.ORAMA_E2E_INDEX_ID)
+  const indexManager = manager.index(process.env.ORAMA_E2E_INDEX_ID)
 
   await t.test('should be able to empty the index', async t => {
     const isEmpty = await indexManager.empty()

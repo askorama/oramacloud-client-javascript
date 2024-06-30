@@ -38,7 +38,7 @@ export class CloudManager {
     this.apiKey = config.api_key
   }
 
-  newIndexManager(indexId: string): IndexManager {
+  index(indexId: string): IndexManager {
     return new IndexManager({ manager: this, indexID: indexId })
   }
 
