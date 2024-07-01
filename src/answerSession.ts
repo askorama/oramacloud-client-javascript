@@ -23,6 +23,7 @@ export type AnswerParams = {
     onMessageLoading?: (receivingMessage: boolean) => void
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
+    onQueryTranslated?: (query: string) => void
   }
 }
 
@@ -148,6 +149,13 @@ export class AnswerSession {
             if (parsedMessage.type === 'sources') {
               if (this.events?.onSourceChange) {
                 this.events.onSourceChange(parsedMessage.message)
+              }
+              continue
+            }
+
+            if (parsedMessage.type === 'query-translated') {
+              if (this.events?.onQueryTranslated) {
+                this.events.onQueryTranslated(parsedMessage.message)
               }
               continue
             }
