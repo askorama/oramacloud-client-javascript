@@ -53,16 +53,31 @@ export class OramaClient {
   private readonly answersApiBaseURL: string | undefined
   private readonly collector?: Collector
   private readonly cache?: Cache<Results<AnyDocument>>
+  private identity?: string
   private searchDebounceTimer?: any // NodeJS.Timer
   private searchRequestCounter = 0
 
   private heartbeat?: HeartBeat
   private initPromise?: Promise<OramaInitResponse | null>
 
+  public clearSession(): void {
+    this.identity = undefined
+  }
+
+  public identify(identity: string): void {
+    if (typeof identity !== 'string') {
+      throw new Error('Identity must be a string')
+    }
+
+    this.identity = identity
+  }
+
   constructor(params: IOramaClient) {
     this.api_key = params.api_key
     this.endpoint = params.endpoint
     this.answersApiBaseURL = params.answersApiBaseURL
+
+    if (params.identity) this.identify(params.identity)
 
     // Telemetry is enabled by default
     if (params.telemetry !== false) {
@@ -117,7 +132,8 @@ export class OramaClient {
           roundTripTime,
           query,
           cached,
-          searchedAt: new Date()
+          searchedAt: new Date(),
+          identity: this.identity
         })
       }
 
@@ -136,7 +152,8 @@ export class OramaClient {
           roundTripTime,
           query,
           cached,
-          searchedAt: new Date()
+          searchedAt: new Date(),
+          identity: this.identity
         })
       }
     } else {
@@ -202,7 +219,8 @@ export class OramaClient {
         roundTripTime,
         query,
         cached,
-        searchedAt: new Date()
+        searchedAt: new Date(),
+        identity: this.identity
       })
     }
 
@@ -229,6 +247,10 @@ export class OramaClient {
 
   public stopHeartBeat(): void {
     this.heartbeat?.stop()
+  }
+
+  public getIdentity(): string | undefined {
+    return this.identity
   }
 
   public async getPop(): Promise<string> {

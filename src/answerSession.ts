@@ -102,6 +102,7 @@ export class AnswerSession {
     // @ts-expect-error - yeah it's private but we need it here
     requestBody.append('endpoint', this.oramaClient.endpoint)
     requestBody.append('searchParams', JSON.stringify(params))
+    requestBody.append('identity', this.oramaClient.getIdentity() ?? '')
 
     const response = await fetch(this.endpoint, {
       method: 'POST',
