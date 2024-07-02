@@ -44,6 +44,8 @@ export type AnswerSessionParams = {
   }
 }
 
+export { AnswerSession, Message }
+
 export class OramaClient {
   private readonly id = createId()
   private readonly api_key: string
