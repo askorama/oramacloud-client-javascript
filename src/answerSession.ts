@@ -8,13 +8,14 @@ import { parseSSE } from './utils.js'
 export type Context = Results<AnyDocument>['hits']
 
 export type Message = {
+  id: string
   role: 'user' | 'assistant'
   content: string
 }
 
 export type InferenceType = 'documentation'
 
-export type AnswerParams = {
+export type AnswerSessionParams = {
   initialMessages: Message[]
   inferenceType: InferenceType
   oramaClient: OramaClient
@@ -22,7 +23,7 @@ export type AnswerParams = {
     onMessageChange?: (messages: Message[]) => void
     onMessageLoading?: (receivingMessage: boolean) => void
     onAnswerAborted?: (aborted: true) => void
-    onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
+    onSourceChange?: <T = AnyDocument>(sources: Results<T>, messageId: string) => void
     onQueryTranslated?: (query: string) => void
   }
 }
@@ -33,11 +34,11 @@ export class AnswerSession {
   private oramaClient: OramaClient
   private endpoint: string
   private abortController?: AbortController
-  private events: AnswerParams['events']
+  private events: AnswerSessionParams['events']
   private conversationID: string
   private userID: string
 
-  constructor(params: AnswerParams) {
+  constructor(params: AnswerSessionParams) {
     // @ts-expect-error - sorry again TypeScript :-)
     const oaramaAnswerHostAddress = params.oramaClient.answersApiBaseURL || ORAMA_ANSWER_ENDPOINT
 
@@ -52,7 +53,7 @@ export class AnswerSession {
   }
 
   public async askStream(params: SearchParams<AnyOrama>): Promise<AsyncGenerator<string>> {
-    this.messages.push({ role: 'user', content: params.term ?? '' })
+    this.messages.push({ role: 'user', content: params.term ?? '', id: createId() })
     return this.fetchAnswer(params)
   }
 
@@ -79,7 +80,7 @@ export class AnswerSession {
   }
 
   private addNewEmptyAssistantMessage(): void {
-    this.messages.push({ role: 'assistant', content: '' })
+    this.messages.push({ role: 'assistant', content: '', id: createId() })
   }
 
   public abortAnswer() {
@@ -148,7 +149,7 @@ export class AnswerSession {
 
             if (parsedMessage.type === 'sources') {
               if (this.events?.onSourceChange) {
-                this.events.onSourceChange(parsedMessage.message)
+                this.events.onSourceChange(parsedMessage.message, lastMessage.id)
               }
               continue
             }

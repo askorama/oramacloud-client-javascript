@@ -1,6 +1,6 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError } from './types.js'
 import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
-import type { Message, InferenceType } from './answerSession.js'
+import type { Message, AnswerSessionParams as LocalAnswerSessionParams } from './answerSession.js'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
 
@@ -33,15 +33,8 @@ export type AnswerParams = {
 
 export type ClientSearchParams = SearchParams<AnyOrama> & AdditionalSearchParams
 
-export type AnswerSessionParams = {
-  inferenceType?: InferenceType
-  initialMessages?: Message[]
-  events?: {
-    onMessageChange?: (messages: Message[]) => void
-    onMessageLoading?: (receivingMessage: boolean) => void
-    onAnswerAborted?: (aborted: true) => void
-    onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
-  }
+export type AnswerSessionParams = Partial<Omit<LocalAnswerSessionParams, 'oramaClient'>> & {
+  events?: Omit<LocalAnswerSessionParams['events'], 'onQueryTranslated'>
 }
 
 export { AnswerSession, Message }
