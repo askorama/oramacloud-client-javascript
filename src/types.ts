@@ -8,6 +8,7 @@ export interface SearchEvent {
   resultsCount: number
   roundTripTime: number
   searchedAt: Date
+  userId: string
   cached?: boolean
   identity?: string
 }

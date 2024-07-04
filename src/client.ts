@@ -133,6 +133,7 @@ export class OramaClient {
           query,
           cached,
           searchedAt: new Date(),
+          userId: Collector.getUserID(),
           identity: this.identity
         })
       }
@@ -153,6 +154,7 @@ export class OramaClient {
           query,
           cached,
           searchedAt: new Date(),
+          userId: Collector.getUserID(),
           identity: this.identity
         })
       }
@@ -220,6 +222,7 @@ export class OramaClient {
         query,
         cached,
         searchedAt: new Date(),
+        userId: Collector.getUserID(),
         identity: this.identity
       })
     }
@@ -266,6 +269,8 @@ export class OramaClient {
           deploymentID: b.deploymentID,
           index: b.index
         })
+
+        Collector.getUserID() // Creates the userID
 
         return b
       })
