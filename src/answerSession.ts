@@ -146,31 +146,35 @@ export class AnswerSession {
             const event = parseSSE(rawMessage)
             const parsedMessage = JSON.parse(event.data)
 
+            // MANAGE INCOMING SOURCES
             if (parsedMessage.type === 'sources') {
               if (this.events?.onSourceChange) {
                 this.events.onSourceChange(parsedMessage.message)
               }
-              continue
-            }
 
-            if (parsedMessage.type === 'query-translated') {
+              // MANAGE INCOMING TRANSLATED QUERY
+            } else if (parsedMessage.type === 'query-translated') {
               if (this.events?.onQueryTranslated) {
                 this.events.onQueryTranslated(parsedMessage.message)
               }
-              continue
-            }
 
-            messageQueue.push(parsedMessage.message)
+              // MANAGE INCOMING MESSAGE CHUNK
+            } else if (parsedMessage.type === 'text') {
+              messageQueue.push(parsedMessage.message)
 
-            // Process the message queue immediately, regardless of endOfBlock
-            while (messageQueue.length > 0) {
-              lastMessage.content += messageQueue.shift()
+              // Process the message queue immediately, regardless of endOfBlock
+              while (messageQueue.length > 0) {
+                lastMessage.content += messageQueue.shift()
 
-              if (this.events?.onMessageChange) {
-                this.events.onMessageChange(this.messages)
+                if (this.events?.onMessageChange) {
+                  this.events.onMessageChange(this.messages)
+                }
+
+                yield lastMessage.content
               }
 
-              yield lastMessage.content
+              // ALL OTHER CASES
+            } else {
             }
           } catch (e) {
             console.error('Error parsing SSE event:', e)

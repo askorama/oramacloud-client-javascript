@@ -64,4 +64,3 @@ export class CloudManager {
     return resp.json()
   }
 }
-
