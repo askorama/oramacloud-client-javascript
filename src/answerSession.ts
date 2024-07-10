@@ -3,7 +3,7 @@ import { createId } from '@paralleldrive/cuid2'
 import { Collector } from './collector.js'
 import { ORAMA_ANSWER_ENDPOINT } from './constants.js'
 import { OramaClient } from './client.js'
-import { parseSSE } from './utils.js'
+import { parseSSE, serializeUserContext } from './utils.js'
 
 export type Context = Results<AnyDocument>['hits']
 
@@ -14,10 +14,11 @@ export type Message = {
 
 export type InferenceType = 'documentation'
 
-export type AnswerParams = {
+export type AnswerParams<UserContext = unknown> = {
   initialMessages: Message[]
   inferenceType: InferenceType
   oramaClient: OramaClient
+  userContext?: UserContext
   events?: {
     onMessageChange?: (messages: Message[]) => void
     onMessageLoading?: (receivingMessage: boolean) => void
@@ -27,6 +28,10 @@ export type AnswerParams = {
   }
 }
 
+export type AskParams = SearchParams<AnyOrama> & {
+  userData?: unknown
+}
+
 export class AnswerSession {
   private messages: Message[]
   private inferenceType: InferenceType
@@ -34,6 +39,7 @@ export class AnswerSession {
   private endpoint: string
   private abortController?: AbortController
   private events: AnswerParams['events']
+  private userContext?: AnswerParams['userContext']
   private conversationID: string
   private userID: string
 
@@ -49,14 +55,15 @@ export class AnswerSession {
     this.events = params.events
     this.conversationID = createId()
     this.userID = Collector.getUserID()
+    this.userContext = params.userContext
   }
 
-  public async askStream(params: SearchParams<AnyOrama>): Promise<AsyncGenerator<string>> {
+  public async askStream(params: AskParams): Promise<AsyncGenerator<string>> {
     this.messages.push({ role: 'user', content: params.term ?? '' })
     return this.fetchAnswer(params)
   }
 
-  public async ask(params: SearchParams<AnyOrama>): Promise<string> {
+  public async ask(params: AskParams): Promise<string> {
     const generator = await this.askStream(params)
     let result = ''
     for await (const message of generator) {
@@ -90,7 +97,7 @@ export class AnswerSession {
     }
   }
 
-  private async *fetchAnswer(params: SearchParams<AnyOrama>): AsyncGenerator<string> {
+  private async *fetchAnswer(params: AskParams): AsyncGenerator<string> {
     this.abortController = new AbortController()
 
     const requestBody = new URLSearchParams()
@@ -102,6 +109,14 @@ export class AnswerSession {
     // @ts-expect-error - yeah it's private but we need it here
     requestBody.append('endpoint', this.oramaClient.endpoint)
     requestBody.append('searchParams', JSON.stringify(params))
+
+    if (this.userContext) {
+      requestBody.append('userContext', serializeUserContext(this.userContext))
+    }
+
+    if (params.userData) {
+      requestBody.append('userData', serializeUserContext(params.userData))
+    }
 
     const response = await fetch(this.endpoint, {
       method: 'POST',
