@@ -24,7 +24,7 @@ export type AnswerParams<UserContext = unknown> = {
     onMessageLoading?: (receivingMessage: boolean) => void
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
-    onQueryTranslated?: (query: string) => void
+    onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
   }
 }
 
