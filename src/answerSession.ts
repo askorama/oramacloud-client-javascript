@@ -25,11 +25,16 @@ export type AnswerParams<UserContext = unknown> = {
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
     onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
+    onRelatedQueries?: (relatedQueries: string[]) => void
   }
 }
 
 export type AskParams = SearchParams<AnyOrama> & {
   userData?: unknown
+  related?: {
+    howMany?: 1 | 2 | 3 | 4 | 5
+    format?: 'question' | 'query'
+  }
 }
 
 export class AnswerSession {
@@ -118,6 +123,14 @@ export class AnswerSession {
       requestBody.append('userData', serializeUserContext(params.userData))
     }
 
+    if (params.related) {
+      if (params.related?.howMany && params.related?.howMany > 5) {
+        throw new Error('Can generate at most 5 related queries')
+      }
+
+      requestBody.append('related', JSON.stringify({ enabled: true, howMany: params.related.howMany ?? 3, format: params.related.format ?? 'question' }))
+    }
+
     const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: {
@@ -171,6 +184,12 @@ export class AnswerSession {
             } else if (parsedMessage.type === 'query-translated') {
               if (this.events?.onQueryTranslated) {
                 this.events.onQueryTranslated(parsedMessage.message)
+              }
+
+              // MANAGE INCOMING RELATED QUERIES
+            } else if (parsedMessage.type === 'related-queries') {
+              if (this.events?.onRelatedQueries) {
+                this.events.onRelatedQueries(parsedMessage.message)
               }
 
               // MANAGE INCOMING MESSAGE CHUNK

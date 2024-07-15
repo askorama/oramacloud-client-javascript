@@ -200,6 +200,37 @@ await t.test('answer session', async t => {
   })
 })
 
+await t.test('answer session - related queries', async t => {
+
+  if (!process.env.ORAMA_E2E_ENDPOINT || !process.env.ORAMA_E2E_API_KEY) {
+    t.skip('ORAMA_E2E_ENDPOINT and ORAMA_E2E_API_KEY are not set. E2e tests will be skipped.')
+    return
+  }
+
+  const client = new OramaClient({
+    endpoint: process.env.ORAMA_E2E_ENDPOINT!,
+    api_key: process.env.ORAMA_E2E_API_KEY!
+  })
+
+  await t.test('can get related queries', async t => {
+    const session = client.createAnswerSession({
+      events: {
+        onRelatedQueries: (queries) => {
+          assert.ok(queries.length === 3)
+        }
+      }
+    })
+
+    await session.ask({
+      term: 'german',
+      related: {
+        howMany: 3,
+        format: 'query',
+      }
+    })
+  })
+})
+
 await t.test('can use the manager APIs', async t => {
   if (!process.env.ORAMA_E2E_ENDPOINT || !process.env.ORAMA_E2E_API_KEY || !process.env.ORAMA_E2E_PRIVATE_API_KEY || !process.env.ORAMA_E2E_INDEX_ID) {
     t.skip('One or more of ORAMA_E2E_ENDPOINT, ORAMA_E2E_API_KEY, ORAMA_E2E_PRIVATE_API_KEY, ORAMA_E2E_INDEX_ID are not set. E2e tests will be skipped.')
