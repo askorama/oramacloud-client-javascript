@@ -50,3 +50,11 @@ export function parseSSE(input: string): SSEPayload {
     data: eventData
   }
 }
+
+export function serializeUserContext(userContext: unknown): string {
+  if (typeof userContext === 'object') {
+    return JSON.stringify(userContext)
+  }
+
+  return `${userContext}`
+}

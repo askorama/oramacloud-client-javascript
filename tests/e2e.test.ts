@@ -196,7 +196,6 @@ await t.test('answer session', async t => {
     const answer = await session.ask({
       term: 'german'
     })
-
     assert.ok(answer.length > 0)
   })
 })

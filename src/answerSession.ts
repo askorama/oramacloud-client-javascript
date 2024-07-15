@@ -3,7 +3,7 @@ import { createId } from '@paralleldrive/cuid2'
 import { Collector } from './collector.js'
 import { ORAMA_ANSWER_ENDPOINT } from './constants.js'
 import { OramaClient } from './client.js'
-import { parseSSE } from './utils.js'
+import { parseSSE, serializeUserContext } from './utils.js'
 
 export type Context = Results<AnyDocument>['hits']
 
@@ -14,17 +14,22 @@ export type Message = {
 
 export type InferenceType = 'documentation'
 
-export type AnswerParams = {
+export type AnswerParams<UserContext = unknown> = {
   initialMessages: Message[]
   inferenceType: InferenceType
   oramaClient: OramaClient
+  userContext?: UserContext
   events?: {
     onMessageChange?: (messages: Message[]) => void
     onMessageLoading?: (receivingMessage: boolean) => void
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
-    onQueryTranslated?: (query: string) => void
+    onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
   }
+}
+
+export type AskParams = SearchParams<AnyOrama> & {
+  userData?: unknown
 }
 
 export class AnswerSession {
@@ -34,6 +39,7 @@ export class AnswerSession {
   private endpoint: string
   private abortController?: AbortController
   private events: AnswerParams['events']
+  private userContext?: AnswerParams['userContext']
   private conversationID: string
 
   constructor(params: AnswerParams) {
@@ -47,14 +53,15 @@ export class AnswerSession {
     this.endpoint = `${oaramaAnswerHostAddress}/v1/answer?api-key=${this.oramaClient.api_key}`
     this.events = params.events
     this.conversationID = createId()
+    this.userContext = params.userContext
   }
 
-  public async askStream(params: SearchParams<AnyOrama>): Promise<AsyncGenerator<string>> {
+  public async askStream(params: AskParams): Promise<AsyncGenerator<string>> {
     this.messages.push({ role: 'user', content: params.term ?? '' })
     return this.fetchAnswer(params)
   }
 
-  public async ask(params: SearchParams<AnyOrama>): Promise<string> {
+  public async ask(params: AskParams): Promise<string> {
     const generator = await this.askStream(params)
     let result = ''
     for await (const message of generator) {
@@ -88,7 +95,7 @@ export class AnswerSession {
     }
   }
 
-  private async *fetchAnswer(params: SearchParams<AnyOrama>): AsyncGenerator<string> {
+  private async *fetchAnswer(params: AskParams): AsyncGenerator<string> {
     this.abortController = new AbortController()
 
     const requestBody = new URLSearchParams()
@@ -101,6 +108,14 @@ export class AnswerSession {
     requestBody.append('endpoint', this.oramaClient.endpoint)
     requestBody.append('searchParams', JSON.stringify(params))
     requestBody.append('identity', this.oramaClient.getIdentity() ?? '')
+
+    if (this.userContext) {
+      requestBody.append('userContext', serializeUserContext(this.userContext))
+    }
+
+    if (params.userData) {
+      requestBody.append('userData', serializeUserContext(params.userData))
+    }
 
     const response = await fetch(this.endpoint, {
       method: 'POST',
@@ -145,31 +160,35 @@ export class AnswerSession {
             const event = parseSSE(rawMessage)
             const parsedMessage = JSON.parse(event.data)
 
+            // MANAGE INCOMING SOURCES
             if (parsedMessage.type === 'sources') {
               if (this.events?.onSourceChange) {
                 this.events.onSourceChange(parsedMessage.message)
               }
-              continue
-            }
 
-            if (parsedMessage.type === 'query-translated') {
+              // MANAGE INCOMING TRANSLATED QUERY
+            } else if (parsedMessage.type === 'query-translated') {
               if (this.events?.onQueryTranslated) {
                 this.events.onQueryTranslated(parsedMessage.message)
               }
-              continue
-            }
 
-            messageQueue.push(parsedMessage.message)
+              // MANAGE INCOMING MESSAGE CHUNK
+            } else if (parsedMessage.type === 'text') {
+              messageQueue.push(parsedMessage.message)
 
-            // Process the message queue immediately, regardless of endOfBlock
-            while (messageQueue.length > 0) {
-              lastMessage.content += messageQueue.shift()
+              // Process the message queue immediately, regardless of endOfBlock
+              while (messageQueue.length > 0) {
+                lastMessage.content += messageQueue.shift()
 
-              if (this.events?.onMessageChange) {
-                this.events.onMessageChange(this.messages)
+                if (this.events?.onMessageChange) {
+                  this.events.onMessageChange(this.messages)
+                }
+
+                yield lastMessage.content
               }
 
-              yield lastMessage.content
+              // ALL OTHER CASES
+            } else {
             }
           } catch (e) {
             console.error('Error parsing SSE event:', e)

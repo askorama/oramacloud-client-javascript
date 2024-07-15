@@ -37,11 +37,13 @@ export type ClientSearchParams = SearchParams<AnyOrama> & AdditionalSearchParams
 export type AnswerSessionParams = {
   inferenceType?: InferenceType
   initialMessages?: Message[]
+  userContext?: unknown
   events?: {
     onMessageChange?: (messages: Message[]) => void
     onMessageLoading?: (receivingMessage: boolean) => void
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
+    onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
   }
 }
 
@@ -225,7 +227,8 @@ export class OramaClient {
       inferenceType: params?.inferenceType || 'documentation',
       initialMessages: params?.initialMessages || [],
       oramaClient: this,
-      events: params?.events
+      events: params?.events,
+      userContext: params?.userContext
     })
   }
 
