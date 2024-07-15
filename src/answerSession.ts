@@ -35,7 +35,6 @@ export class AnswerSession {
   private abortController?: AbortController
   private events: AnswerParams['events']
   private conversationID: string
-  private userID: string
 
   constructor(params: AnswerParams) {
     // @ts-expect-error - sorry again TypeScript :-)
@@ -48,7 +47,6 @@ export class AnswerSession {
     this.endpoint = `${oaramaAnswerHostAddress}/v1/answer?api-key=${this.oramaClient.api_key}`
     this.events = params.events
     this.conversationID = createId()
-    this.userID = Collector.getUserID()
   }
 
   public async askStream(params: SearchParams<AnyOrama>): Promise<AsyncGenerator<string>> {
@@ -98,7 +96,7 @@ export class AnswerSession {
     requestBody.append('messages', JSON.stringify(this.messages))
     requestBody.append('query', params.term ?? '')
     requestBody.append('conversationId', this.conversationID)
-    requestBody.append('userId', this.userID)
+    requestBody.append('userId', this.oramaClient.getUserId())
     // @ts-expect-error - yeah it's private but we need it here
     requestBody.append('endpoint', this.oramaClient.endpoint)
     requestBody.append('searchParams', JSON.stringify(params))

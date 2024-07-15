@@ -1,8 +1,7 @@
 import type { SearchEvent, ICollector, TelemetryConfig } from './types.js'
-import { createId } from '@paralleldrive/cuid2'
-import { LOCAL_STORAGE_USER_ID_KEY, LOCAL_STORAGE_SERVER_SIDE_SESSION_KEY } from './constants.js'
 import pkg from '../package.json'
 import sendBeacon from './sendBeacon.js'
+import { Profile } from './profile.js'
 
 type Data = any[]
 
@@ -10,18 +9,20 @@ export class Collector {
   private data: Data
   private params?: ICollector
   private readonly config: CollectorConstructor
+  private readonly profile: Profile
 
-  private constructor(config: CollectorConstructor) {
+  private constructor(config: CollectorConstructor, profile: Profile) {
     this.data = []
     this.config = config
+    this.profile = profile
   }
 
   public setParams(params: ICollector): void {
     this.params = params
   }
 
-  public static create(config: CollectorConstructor): Collector {
-    const collector = new Collector(config)
+  public static create(config: CollectorConstructor, profile: Profile): Collector {
+    const collector = new Collector(config, profile)
     collector.start()
     return collector
   }
@@ -33,8 +34,8 @@ export class Collector {
       resultsCount: data.resultsCount,
       roundTripTime: data.roundTripTime,
       searchedAt: data.searchedAt,
-      userId: data.userId,
-      identity: data.identity,
+      userId: this.profile.getUserId(),
+      identity: this.profile.getIdentity(),
       // The referer is different for every event:
       // the user can search in different pages of the website
       // and the referer will be different for each page
@@ -70,24 +71,6 @@ export class Collector {
     }
 
     sendBeacon(this.params.endpoint + `?api-key=${this.config.api_key}`, JSON.stringify(body))?.catch((err) => console.log(err))
-  }
-
-  static getUserID(): string {
-    if (typeof localStorage === 'undefined') {
-      return LOCAL_STORAGE_SERVER_SIDE_SESSION_KEY
-    }
-
-    const userID = localStorage.getItem(LOCAL_STORAGE_USER_ID_KEY)
-
-    if (userID) {
-      return userID
-    }
-
-    const newUserID = createId()
-
-    localStorage.setItem(LOCAL_STORAGE_USER_ID_KEY, newUserID)
-
-    return newUserID
   }
 
   private start(): void {
