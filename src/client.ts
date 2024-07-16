@@ -1,4 +1,4 @@
-import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError } from './types.js'
+import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError, Override } from './types.js'
 import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
 import type { Message, InferenceType } from './answerSession.js'
 import { formatElapsedTime } from '@orama/orama/components'
@@ -31,7 +31,16 @@ export type AnswerParams = {
   context: Results<any>['hits']
 }
 
-export type ClientSearchParams = SearchParams<AnyOrama> & AdditionalSearchParams
+export type SortByClauseUnion = SortByClause | SortByClause[]
+
+type Order = 'ASC' | 'DESC' | 'asc' | 'desc'
+
+type SortByClause = {
+  property: string
+  order?: Order
+}
+
+export type ClientSearchParams = Override<SearchParams<AnyOrama>, { sortBy?: SortByClauseUnion }> & AdditionalSearchParams
 
 export type AnswerSessionParams = {
   inferenceType?: InferenceType

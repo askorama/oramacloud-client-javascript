@@ -16,6 +16,7 @@ export function useAnswerSession<Document = AnyDocument>(params: AnswerSessionHo
   const [error, setError] = useState<Nullable<Error>>(null)
   const [aborted, setAborted] = useState<boolean>(false)
   const [sources, setSources] = useState<Nullable<Results<Document>>>(null)
+  const [relatedQueries, setRelatedQueries] = useState<Nullable<string[]>>(null)
   const sessionRef = useRef<Nullable<AnswerSession>>(null)
 
   useEffect(() => {
@@ -44,6 +45,9 @@ export function useAnswerSession<Document = AnyDocument>(params: AnswerSessionHo
         },
         onSourceChange: (sources) => {
           setSources(sources as unknown as Results<Document>)
+        },
+        onRelatedQueries: (relatedQueries) => {
+          setRelatedQueries(relatedQueries)
         }
       }
     })
@@ -79,6 +83,7 @@ export function useAnswerSession<Document = AnyDocument>(params: AnswerSessionHo
     abortAnswer,
     error,
     sources,
+    relatedQueries,
     ask,
     clearSession
   }
