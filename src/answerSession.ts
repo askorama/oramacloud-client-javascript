@@ -216,35 +216,38 @@ export class AnswerSession {
 
             // MANAGE INCOMING SOURCES
             if (parsedMessage.type === 'sources') {
+              this.state[currentStateIndex].sources = parsedMessage.message
+
               if (this.events?.onSourceChange) {
                 this.events.onSourceChange(parsedMessage.message)
-                this.state[currentStateIndex].sources = parsedMessage.message
+              }
 
-                if (this.events?.onStateChange) {
-                  this.events.onStateChange(this.state)
-                }
+              if (this.events?.onStateChange) {
+                this.events.onStateChange(this.state)
               }
 
               // MANAGE INCOMING TRANSLATED QUERY
             } else if (parsedMessage.type === 'query-translated') {
+              this.state[currentStateIndex].translatedQuery = parsedMessage.message
+
               if (this.events?.onQueryTranslated) {
                 this.events.onQueryTranslated(parsedMessage.message)
-                this.state[currentStateIndex].translatedQuery = parsedMessage.message
+              }
 
-                if (this.events?.onStateChange) {
-                  this.events.onStateChange(this.state)
-                }
+              if (this.events?.onStateChange) {
+                this.events.onStateChange(this.state)
               }
 
               // MANAGE INCOMING RELATED QUERIES
             } else if (parsedMessage.type === 'related-queries') {
+              this.state[currentStateIndex].relatedQueries = parsedMessage.message
+
               if (this.events?.onRelatedQueries) {
                 this.events.onRelatedQueries(parsedMessage.message)
-                this.state[currentStateIndex].relatedQueries = parsedMessage.message
+              }
 
-                if (this.events?.onStateChange) {
-                  this.events.onStateChange(this.state)
-                }
+              if (this.events?.onStateChange) {
+                this.events.onStateChange(this.state)
               }
 
               // MANAGE INCOMING MESSAGE CHUNK
@@ -254,7 +257,7 @@ export class AnswerSession {
               // Process the message queue immediately, regardless of endOfBlock
               while (messageQueue.length > 0) {
                 lastMessage.content += messageQueue.shift()
-                this.state[currentStateIndex].response += messageQueue.shift()
+                this.state[currentStateIndex].response += lastMessage.content
 
                 if (this.events?.onStateChange) {
                   this.events.onStateChange(this.state)
@@ -269,6 +272,7 @@ export class AnswerSession {
 
               // ALL OTHER CASES
             } else {
+              // https://shorturl.at/PlUKm
             }
           } catch (e) {
             console.error('Error parsing SSE event:', e)

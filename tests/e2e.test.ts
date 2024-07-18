@@ -2,10 +2,12 @@ import type { SummaryParams } from '../src/proxy.js'
 
 import t from 'node:test'
 import assert from 'node:assert'
+import { setTimeout } from 'node:timers/promises'
 import { OramaProxy } from '../src/proxy.js'
 import { OramaClient } from '../src/client.js'
 import { CloudManager } from '../src/manager/index.js'
 import 'dotenv/config.js'
+import { Interaction } from '../src/answerSession.js'
 
 await t.test('secure proxy', async t => {
 
@@ -291,5 +293,50 @@ await t.test('can use the manager APIs', async t => {
   await t.test('should be able to deploy the index', async t => {
     const success = await indexManager.deploy()
     assert.ok(success)
+  })
+})
+
+await t.test('state management via answer session APIs', async t => {
+  if (!process.env.ORAMA_E2E_ENDPOINT || !process.env.ORAMA_E2E_API_KEY) {
+    t.skip('ORAMA_E2E_ENDPOINT and ORAMA_E2E_API_KEY are not set. E2e tests will be skipped.')
+    return
+  }
+
+  const client = new OramaClient({
+    endpoint: process.env.ORAMA_E2E_ENDPOINT!,
+    api_key: process.env.ORAMA_E2E_API_KEY!
+  })
+
+  await t.test('onStateChange', async t => {
+    let state: Interaction[] = []
+
+    const session = client.createAnswerSession({
+      events: {
+        onStateChange: (incomingState) => {
+          state = incomingState
+        }
+      }
+    })
+
+    await session.ask({
+      term: 'german',
+      related: {
+        format: 'query',
+        howMany: 3
+      }
+    })
+
+    await session.ask({
+      term: 'labrador',
+      related: {
+        format: 'query',
+        howMany: 3
+      }
+    })
+
+    assert.equal(state.length, 2)
+    assert.equal(state[0].query, 'german')
+    assert.equal(state[1].query, 'labrador')
+    assert.equal(state[0].aborted, false)
   })
 })
