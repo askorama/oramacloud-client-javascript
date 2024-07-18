@@ -25,7 +25,8 @@ export type AnswerParams<UserContext = unknown> = {
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
     onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
-    onRelatedQueries?: (relatedQueries: string[]) => void
+    onRelatedQueries?: (relatedQueries: string[]) => void,
+    onNewInteractionStarted?: (interactionId: string) => void
   }
 }
 
@@ -114,6 +115,10 @@ export class AnswerSession {
       relatedQueries: null,
       sources: null,
       translatedQuery: null,
+    }
+
+    if (this.events?.onNewInteractionStarted) {
+      this.events.onNewInteractionStarted(interactionId)
     }
 
     const requestBody = new URLSearchParams()
