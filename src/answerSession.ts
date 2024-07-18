@@ -47,6 +47,7 @@ export class AnswerSession {
   private userContext?: AnswerParams['userContext']
   private conversationID: string
   private userID: string
+  interactions: { [key: string]: any } = {}
 
   constructor(params: AnswerParams) {
     // @ts-expect-error - sorry again TypeScript :-)
@@ -104,6 +105,16 @@ export class AnswerSession {
 
   private async *fetchAnswer(params: AskParams): AsyncGenerator<string> {
     this.abortController = new AbortController()
+    
+    const interactionId = createId()
+
+    this.interactions[interactionId] = {
+      query: params.term,
+      response: null,
+      relatedQueries: null,
+      sources: null,
+      translatedQuery: null,
+    }
 
     const requestBody = new URLSearchParams()
     requestBody.append('type', this.inferenceType)
@@ -114,6 +125,7 @@ export class AnswerSession {
     // @ts-expect-error - yeah it's private but we need it here
     requestBody.append('endpoint', this.oramaClient.endpoint)
     requestBody.append('searchParams', JSON.stringify(params))
+    requestBody.append('interactionId', interactionId)
 
     if (this.userContext) {
       requestBody.append('userContext', serializeUserContext(this.userContext))
@@ -178,18 +190,21 @@ export class AnswerSession {
             if (parsedMessage.type === 'sources') {
               if (this.events?.onSourceChange) {
                 this.events.onSourceChange(parsedMessage.message)
+                this.interactions[interactionId].sources = parsedMessage.message
               }
 
               // MANAGE INCOMING TRANSLATED QUERY
             } else if (parsedMessage.type === 'query-translated') {
               if (this.events?.onQueryTranslated) {
                 this.events.onQueryTranslated(parsedMessage.message)
+                this.interactions[interactionId].translatedQuery = parsedMessage.message
               }
 
               // MANAGE INCOMING RELATED QUERIES
             } else if (parsedMessage.type === 'related-queries') {
               if (this.events?.onRelatedQueries) {
                 this.events.onRelatedQueries(parsedMessage.message)
+                this.interactions[interactionId].relatedQueries = parsedMessage.message
               }
 
               // MANAGE INCOMING MESSAGE CHUNK
@@ -199,6 +214,7 @@ export class AnswerSession {
               // Process the message queue immediately, regardless of endOfBlock
               while (messageQueue.length > 0) {
                 lastMessage.content += messageQueue.shift()
+                this.interactions[interactionId].response += messageQueue.shift()
 
                 if (this.events?.onMessageChange) {
                   this.events.onMessageChange(this.messages)
