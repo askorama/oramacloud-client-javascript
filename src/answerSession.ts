@@ -61,9 +61,7 @@ export class AnswerSession {
   private conversationID: string
   private userID: string
 
-  private state: Interaction[] = []
-
-  interactions: { [key: string]: any } = {}
+  public state: Interaction[] = []
 
   constructor(params: AnswerParams) {
     // @ts-expect-error - sorry again TypeScript :-)
