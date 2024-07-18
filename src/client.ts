@@ -1,6 +1,6 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError, Override } from './types.js'
 import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
-import type { Message, InferenceType } from './answerSession.js'
+import type { Message, InferenceType, Interaction } from './answerSession.js'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
 
@@ -52,7 +52,9 @@ export type AnswerSessionParams = {
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
     onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
-    onRelatedQueries?: (relatedQueries: string[]) => void
+    onRelatedQueries?: (relatedQueries: string[]) => void,
+    onNewInteractionStarted?: (interactionId: string) => void,
+    onStateChange?: (state: Interaction[]) => void
   }
 }
 

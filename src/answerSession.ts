@@ -1,4 +1,4 @@
-import type { Results, AnyDocument, SearchParams, AnyOrama } from '@orama/orama'
+import type { Results, AnyDocument, SearchParams, AnyOrama, Nullable } from '@orama/orama'
 import { createId } from '@paralleldrive/cuid2'
 import { Collector } from './collector.js'
 import { ORAMA_ANSWER_ENDPOINT } from './constants.js'
@@ -25,8 +25,21 @@ export type AnswerParams<UserContext = unknown> = {
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
     onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
-    onRelatedQueries?: (relatedQueries: string[]) => void
+    onRelatedQueries?: (relatedQueries: string[]) => void,
+    onNewInteractionStarted?: (interactionId: string) => void,
+    onStateChange?: (state: Interaction[]) => void
   }
+}
+
+export type Interaction<T = AnyDocument> = {
+  interactionId: string,
+  query: string,
+  response: string,
+  relatedQueries: Nullable<string[]>,
+  sources: Nullable<Results<T>>,
+  translatedQuery: Nullable<SearchParams<AnyOrama>>,
+  aborted: boolean,
+  loading: boolean
 }
 
 export type AskParams = SearchParams<AnyOrama> & {
@@ -47,6 +60,8 @@ export class AnswerSession {
   private userContext?: AnswerParams['userContext']
   private conversationID: string
   private userID: string
+
+  public state: Interaction[] = []
 
   constructor(params: AnswerParams) {
     // @ts-expect-error - sorry again TypeScript :-)
@@ -104,6 +119,30 @@ export class AnswerSession {
 
   private async *fetchAnswer(params: AskParams): AsyncGenerator<string> {
     this.abortController = new AbortController()
+    
+    const interactionId = createId()
+
+    this.state.push({
+      interactionId,
+      query: params.term ?? '',
+      response: '',
+      relatedQueries: null,
+      sources: null,
+      translatedQuery: null,
+      aborted: false,
+      loading: true
+    })
+
+    // needed to avoid race conditions later on
+    const currentStateIndex = this.state.findIndex((interaction) => interaction.interactionId === interactionId)
+
+    if (this.events?.onNewInteractionStarted) {
+      this.events.onNewInteractionStarted(interactionId)
+    }
+
+    if (this.events?.onStateChange) {
+      this.events.onStateChange(this.state)
+    }
 
     const requestBody = new URLSearchParams()
     requestBody.append('type', this.inferenceType)
@@ -114,6 +153,7 @@ export class AnswerSession {
     // @ts-expect-error - yeah it's private but we need it here
     requestBody.append('endpoint', this.oramaClient.endpoint)
     requestBody.append('searchParams', JSON.stringify(params))
+    requestBody.append('interactionId', interactionId)
 
     if (this.userContext) {
       requestBody.append('userContext', serializeUserContext(this.userContext))
@@ -176,20 +216,38 @@ export class AnswerSession {
 
             // MANAGE INCOMING SOURCES
             if (parsedMessage.type === 'sources') {
+              this.state[currentStateIndex].sources = parsedMessage.message
+
               if (this.events?.onSourceChange) {
                 this.events.onSourceChange(parsedMessage.message)
               }
 
+              if (this.events?.onStateChange) {
+                this.events.onStateChange(this.state)
+              }
+
               // MANAGE INCOMING TRANSLATED QUERY
             } else if (parsedMessage.type === 'query-translated') {
+              this.state[currentStateIndex].translatedQuery = parsedMessage.message
+
               if (this.events?.onQueryTranslated) {
                 this.events.onQueryTranslated(parsedMessage.message)
               }
 
+              if (this.events?.onStateChange) {
+                this.events.onStateChange(this.state)
+              }
+
               // MANAGE INCOMING RELATED QUERIES
             } else if (parsedMessage.type === 'related-queries') {
+              this.state[currentStateIndex].relatedQueries = parsedMessage.message
+
               if (this.events?.onRelatedQueries) {
                 this.events.onRelatedQueries(parsedMessage.message)
+              }
+
+              if (this.events?.onStateChange) {
+                this.events.onStateChange(this.state)
               }
 
               // MANAGE INCOMING MESSAGE CHUNK
@@ -199,6 +257,11 @@ export class AnswerSession {
               // Process the message queue immediately, regardless of endOfBlock
               while (messageQueue.length > 0) {
                 lastMessage.content += messageQueue.shift()
+                this.state[currentStateIndex].response += lastMessage.content
+
+                if (this.events?.onStateChange) {
+                  this.events.onStateChange(this.state)
+                }
 
                 if (this.events?.onMessageChange) {
                   this.events.onMessageChange(this.messages)
@@ -209,6 +272,7 @@ export class AnswerSession {
 
               // ALL OTHER CASES
             } else {
+              // https://shorturl.at/PlUKm
             }
           } catch (e) {
             console.error('Error parsing SSE event:', e)
@@ -218,6 +282,13 @@ export class AnswerSession {
       }
     } catch (err) {
       if ((err as any).name === 'AbortError') {
+        this.state[currentStateIndex].aborted = true
+        this.state[currentStateIndex].loading = false
+
+        if (this.events?.onStateChange) {
+          this.events.onStateChange(this.state)
+        }
+
         if (this.events?.onAnswerAborted) {
           this.events.onAnswerAborted(true)
         }
@@ -226,6 +297,12 @@ export class AnswerSession {
       }
     } finally {
       reader.releaseLock()
+    }
+
+    this.state[currentStateIndex].loading = false
+
+    if (this.events?.onStateChange) {
+      this.events.onStateChange(this.state)
     }
 
     if (this.events?.onMessageLoading) {
