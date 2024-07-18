@@ -1,4 +1,4 @@
-import type { Results, AnyDocument, SearchParams, AnyOrama } from '@orama/orama'
+import type { Results, AnyDocument, SearchParams, AnyOrama, Nullable } from '@orama/orama'
 import { createId } from '@paralleldrive/cuid2'
 import { Collector } from './collector.js'
 import { ORAMA_ANSWER_ENDPOINT } from './constants.js'
@@ -26,8 +26,20 @@ export type AnswerParams<UserContext = unknown> = {
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
     onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
     onRelatedQueries?: (relatedQueries: string[]) => void,
-    onNewInteractionStarted?: (interactionId: string) => void
+    onNewInteractionStarted?: (interactionId: string) => void,
+    onStateChange?: (state: Interaction[]) => void
   }
+}
+
+export type Interaction<T = AnyDocument> = {
+  interactionId: string,
+  query: string,
+  response: string,
+  relatedQueries: Nullable<string[]>,
+  sources: Nullable<Results<T>>,
+  translatedQuery: Nullable<SearchParams<AnyOrama>>,
+  aborted: boolean,
+  loading: boolean
 }
 
 export type AskParams = SearchParams<AnyOrama> & {
@@ -48,6 +60,9 @@ export class AnswerSession {
   private userContext?: AnswerParams['userContext']
   private conversationID: string
   private userID: string
+
+  private state: Interaction[] = []
+
   interactions: { [key: string]: any } = {}
 
   constructor(params: AnswerParams) {
@@ -109,16 +124,26 @@ export class AnswerSession {
     
     const interactionId = createId()
 
-    this.interactions[interactionId] = {
-      query: params.term,
-      response: null,
+    this.state.push({
+      interactionId,
+      query: params.term ?? '',
+      response: '',
       relatedQueries: null,
       sources: null,
       translatedQuery: null,
-    }
+      aborted: false,
+      loading: true
+    })
+
+    // needed to avoid race conditions later on
+    const currentStateIndex = this.state.findIndex((interaction) => interaction.interactionId === interactionId)
 
     if (this.events?.onNewInteractionStarted) {
       this.events.onNewInteractionStarted(interactionId)
+    }
+
+    if (this.events?.onStateChange) {
+      this.events.onStateChange(this.state)
     }
 
     const requestBody = new URLSearchParams()
@@ -195,21 +220,33 @@ export class AnswerSession {
             if (parsedMessage.type === 'sources') {
               if (this.events?.onSourceChange) {
                 this.events.onSourceChange(parsedMessage.message)
-                this.interactions[interactionId].sources = parsedMessage.message
+                this.state[currentStateIndex].sources = parsedMessage.message
+
+                if (this.events?.onStateChange) {
+                  this.events.onStateChange(this.state)
+                }
               }
 
               // MANAGE INCOMING TRANSLATED QUERY
             } else if (parsedMessage.type === 'query-translated') {
               if (this.events?.onQueryTranslated) {
                 this.events.onQueryTranslated(parsedMessage.message)
-                this.interactions[interactionId].translatedQuery = parsedMessage.message
+                this.state[currentStateIndex].translatedQuery = parsedMessage.message
+
+                if (this.events?.onStateChange) {
+                  this.events.onStateChange(this.state)
+                }
               }
 
               // MANAGE INCOMING RELATED QUERIES
             } else if (parsedMessage.type === 'related-queries') {
               if (this.events?.onRelatedQueries) {
                 this.events.onRelatedQueries(parsedMessage.message)
-                this.interactions[interactionId].relatedQueries = parsedMessage.message
+                this.state[currentStateIndex].relatedQueries = parsedMessage.message
+
+                if (this.events?.onStateChange) {
+                  this.events.onStateChange(this.state)
+                }
               }
 
               // MANAGE INCOMING MESSAGE CHUNK
@@ -219,7 +256,11 @@ export class AnswerSession {
               // Process the message queue immediately, regardless of endOfBlock
               while (messageQueue.length > 0) {
                 lastMessage.content += messageQueue.shift()
-                this.interactions[interactionId].response += messageQueue.shift()
+                this.state[currentStateIndex].response += messageQueue.shift()
+
+                if (this.events?.onStateChange) {
+                  this.events.onStateChange(this.state)
+                }
 
                 if (this.events?.onMessageChange) {
                   this.events.onMessageChange(this.messages)
@@ -239,6 +280,13 @@ export class AnswerSession {
       }
     } catch (err) {
       if ((err as any).name === 'AbortError') {
+        this.state[currentStateIndex].aborted = true
+        this.state[currentStateIndex].loading = false
+
+        if (this.events?.onStateChange) {
+          this.events.onStateChange(this.state)
+        }
+
         if (this.events?.onAnswerAborted) {
           this.events.onAnswerAborted(true)
         }
@@ -247,6 +295,12 @@ export class AnswerSession {
       }
     } finally {
       reader.releaseLock()
+    }
+
+    this.state[currentStateIndex].loading = false
+
+    if (this.events?.onStateChange) {
+      this.events.onStateChange(this.state)
     }
 
     if (this.events?.onMessageLoading) {
