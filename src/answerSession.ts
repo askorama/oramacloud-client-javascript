@@ -25,20 +25,20 @@ export type AnswerParams<UserContext = unknown> = {
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
     onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
-    onRelatedQueries?: (relatedQueries: string[]) => void,
-    onNewInteractionStarted?: (interactionId: string) => void,
+    onRelatedQueries?: (relatedQueries: string[]) => void
+    onNewInteractionStarted?: (interactionId: string) => void
     onStateChange?: (state: Interaction[]) => void
   }
 }
 
 export type Interaction<T = AnyDocument> = {
-  interactionId: string,
-  query: string,
-  response: string,
-  relatedQueries: Nullable<string[]>,
-  sources: Nullable<Results<T>>,
-  translatedQuery: Nullable<SearchParams<AnyOrama>>,
-  aborted: boolean,
+  interactionId: string
+  query: string
+  response: string
+  relatedQueries: Nullable<string[]>
+  sources: Nullable<Results<T>>
+  translatedQuery: Nullable<SearchParams<AnyOrama>>
+  aborted: boolean
   loading: boolean
 }
 
@@ -60,6 +60,7 @@ export class AnswerSession {
   private userContext?: AnswerParams['userContext']
   private conversationID: string
   private userID: string
+  private lastInteractionParams?: AskParams
 
   public state: Interaction[] = []
 
@@ -105,21 +106,42 @@ export class AnswerSession {
     this.messages = []
   }
 
-  private addNewEmptyAssistantMessage(): void {
-    this.messages.push({ role: 'assistant', content: '' })
-  }
-
   public abortAnswer() {
     if (this.abortController) {
       this.abortController.abort()
       this.abortController = undefined
-      this.messages.pop()
+      this.state[this.state.length - 1].aborted = true
     }
+  }
+
+  public async regenerateLast({ stream = true } = {}): Promise<string | AsyncGenerator<string>> {
+    if (this.state.length === 0 || this.messages.length === 0) {
+      throw new Error('No messages to regenerate')
+    }
+
+    const isLastMessageAssistant = this.messages.at(-1)?.role === 'assistant'
+
+    if (!isLastMessageAssistant) {
+      throw new Error('Last message is not an assistant message')
+    }
+
+    this.messages.pop()
+    this.state.pop()
+
+    if (stream) {
+      return this.askStream(this.lastInteractionParams as AskParams)
+    }
+
+    return this.ask(this.lastInteractionParams as AskParams)
+  }
+
+  private addNewEmptyAssistantMessage(): void {
+    this.messages.push({ role: 'assistant', content: '' })
   }
 
   private async *fetchAnswer(params: AskParams): AsyncGenerator<string> {
     this.abortController = new AbortController()
-    
+    this.lastInteractionParams = params
     const interactionId = createId()
 
     this.state.push({

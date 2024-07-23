@@ -52,8 +52,8 @@ export type AnswerSessionParams = {
     onAnswerAborted?: (aborted: true) => void
     onSourceChange?: <T = AnyDocument>(sources: Results<T>) => void
     onQueryTranslated?: (query: SearchParams<AnyOrama>) => void
-    onRelatedQueries?: (relatedQueries: string[]) => void,
-    onNewInteractionStarted?: (interactionId: string) => void,
+    onRelatedQueries?: (relatedQueries: string[]) => void
+    onNewInteractionStarted?: (interactionId: string) => void
     onStateChange?: (state: Interaction[]) => void
   }
 }
