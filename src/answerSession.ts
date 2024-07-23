@@ -257,7 +257,7 @@ export class AnswerSession {
               // Process the message queue immediately, regardless of endOfBlock
               while (messageQueue.length > 0) {
                 lastMessage.content += messageQueue.shift()
-                this.state[currentStateIndex].response += lastMessage.content
+                this.state[currentStateIndex].response = lastMessage.content
 
                 if (this.events?.onStateChange) {
                   this.events.onStateChange(this.state)
