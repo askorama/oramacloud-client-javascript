@@ -203,7 +203,7 @@ const { results } = useSearch({
 
 Note: we suggest developers to always call `.identify()` when users sign-up, log-in or when the user re-opens the application in a logged-in state.
 
-Example or already logged0in state:
+Example or already logged in state:
 
 ```js
 
@@ -214,7 +214,7 @@ const client = new OramaClient({
   api_key: "<Your Orama Cloud API Key>",
 });
 
-client.identify("user123");
+client.identify("<Your unique User ID>");
 
 client.search({
   term: "red leather shoes",
