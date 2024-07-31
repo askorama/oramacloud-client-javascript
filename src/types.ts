@@ -2,6 +2,8 @@ import type { ClientSearchParams } from '../src/client.js'
 
 export type Optional<T = unknown> = T | undefined
 
+export type Override<T extends object, K extends { [P in keyof T]?: unknown }> = Omit<T, keyof K> & K
+
 export interface SearchEvent {
   rawSearchString?: string
   query: ClientSearchParams

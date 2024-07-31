@@ -2,10 +2,18 @@ import type { SummaryParams } from '../src/proxy.js'
 
 import t from 'node:test'
 import assert from 'node:assert'
+import { setTimeout } from 'node:timers/promises'
 import { OramaProxy } from '../src/proxy.js'
 import { OramaClient } from '../src/client.js'
 import { CloudManager } from '../src/manager/index.js'
 import 'dotenv/config.js'
+import { Interaction } from '../src/answerSession.js'
+
+function createProxy() {
+  return new OramaProxy({
+    api_key: process.env.ORAMA_SECURE_PROXY_API_KEY_TEST || ''
+  })
+}
 
 await t.test('secure proxy', async t => {
 
@@ -172,12 +180,6 @@ await t.test('secure proxy', async t => {
   })
 })
 
-function createProxy() {
-  return new OramaProxy({
-    api_key: process.env.ORAMA_SECURE_PROXY_API_KEY_TEST || ''
-  })
-}
-
 await t.test('answer session', async t => {
 
   if (!process.env.ORAMA_E2E_ENDPOINT || !process.env.ORAMA_E2E_API_KEY) {
@@ -197,6 +199,37 @@ await t.test('answer session', async t => {
       term: 'german'
     })
     assert.ok(answer.length > 0)
+  })
+})
+
+await t.test('answer session - related queries', async t => {
+
+  if (!process.env.ORAMA_E2E_ENDPOINT || !process.env.ORAMA_E2E_API_KEY) {
+    t.skip('ORAMA_E2E_ENDPOINT and ORAMA_E2E_API_KEY are not set. E2e tests will be skipped.')
+    return
+  }
+
+  const client = new OramaClient({
+    endpoint: process.env.ORAMA_E2E_ENDPOINT!,
+    api_key: process.env.ORAMA_E2E_API_KEY!
+  })
+
+  await t.test('can get related queries', async t => {
+    const session = client.createAnswerSession({
+      events: {
+        onRelatedQueries: (queries) => {
+          assert.ok(queries.length === 3)
+        }
+      }
+    })
+
+    await session.ask({
+      term: 'german',
+      related: {
+        howMany: 3,
+        format: 'query',
+      }
+    })
   })
 })
 
@@ -261,4 +294,84 @@ await t.test('can use the manager APIs', async t => {
     const success = await indexManager.deploy()
     assert.ok(success)
   })
+})
+
+await t.test('state management via answer session APIs', async t => {
+  if (!process.env.ORAMA_E2E_ENDPOINT || !process.env.ORAMA_E2E_API_KEY) {
+    t.skip('ORAMA_E2E_ENDPOINT and ORAMA_E2E_API_KEY are not set. E2e tests will be skipped.')
+    return
+  }
+
+  const client = new OramaClient({
+    endpoint: process.env.ORAMA_E2E_ENDPOINT!,
+    api_key: process.env.ORAMA_E2E_API_KEY!
+  })
+
+  await t.test('onStateChange', async t => {
+    let state: Interaction[] = []
+
+    const session = client.createAnswerSession({
+      events: {
+        onStateChange: (incomingState) => {
+          state = incomingState
+        }
+      }
+    })
+
+    await session.ask({
+      term: 'german',
+      related: {
+        format: 'query',
+        howMany: 3
+      }
+    })
+
+    await session.ask({
+      term: 'labrador',
+      related: {
+        format: 'query',
+        howMany: 3
+      }
+    })
+
+    assert.equal(state.length, 2)
+    assert.equal(state[0].query, 'german')
+    assert.equal(state[1].query, 'labrador')
+    assert.equal(state[0].aborted, false)
+  })
+})
+
+await t.test('regenerate last answer', async t => {
+  if (!process.env.ORAMA_E2E_ENDPOINT || !process.env.ORAMA_E2E_API_KEY) {
+    t.skip('ORAMA_E2E_ENDPOINT and ORAMA_E2E_API_KEY are not set. E2e tests will be skipped.')
+    return
+  }
+
+  const client = new OramaClient({
+    endpoint: process.env.ORAMA_E2E_ENDPOINT!,
+    api_key: process.env.ORAMA_E2E_API_KEY!
+  })
+
+  let state: Interaction[] = []
+
+  const answerSession = client.createAnswerSession({
+    events: {
+      onStateChange: (newState) => {
+        state = newState
+      }
+    }
+  })
+
+  await answerSession.ask({
+    term: 'german'
+  })
+  
+  await answerSession.ask({
+    term: 'labrador'
+  })
+
+  await answerSession.regenerateLast({ stream: false })
+
+  assert.equal(state.length, 2)
+  assert.equal(state[state.length - 1].query, 'labrador')
 })
