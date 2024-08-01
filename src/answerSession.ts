@@ -1,6 +1,5 @@
 import type { Results, AnyDocument, SearchParams, AnyOrama, Nullable } from '@orama/orama'
 import { createId } from '@paralleldrive/cuid2'
-import { Collector } from './collector.js'
 import { ORAMA_ANSWER_ENDPOINT } from './constants.js'
 import { OramaClient } from './client.js'
 import { parseSSE, serializeUserContext } from './utils.js'
@@ -59,9 +58,7 @@ export class AnswerSession {
   private events: AnswerParams['events']
   private userContext?: AnswerParams['userContext']
   private conversationID: string
-  private userID: string
   private lastInteractionParams?: AskParams
-
   public state: Interaction[] = []
 
   constructor(params: AnswerParams) {
@@ -75,7 +72,6 @@ export class AnswerSession {
     this.endpoint = `${oaramaAnswerHostAddress}/v1/answer?api-key=${this.oramaClient.api_key}`
     this.events = params.events
     this.conversationID = createId()
-    this.userID = Collector.getUserID()
     this.userContext = params.userContext
   }
 
@@ -171,10 +167,11 @@ export class AnswerSession {
     requestBody.append('messages', JSON.stringify(this.messages))
     requestBody.append('query', params.term ?? '')
     requestBody.append('conversationId', this.conversationID)
-    requestBody.append('userId', this.userID)
+    requestBody.append('userId', this.oramaClient.getUserId())
     // @ts-expect-error - yeah it's private but we need it here
     requestBody.append('endpoint', this.oramaClient.endpoint)
     requestBody.append('searchParams', JSON.stringify(params))
+    requestBody.append('identity', this.oramaClient.getIdentity() ?? '')
     requestBody.append('interactionId', interactionId)
 
     if (this.userContext) {

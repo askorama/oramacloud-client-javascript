@@ -10,6 +10,7 @@ import * as CONST from './constants.js'
 import { Collector } from './collector.js'
 import { HeartBeat } from './heartbeat.js'
 import { version } from '../package.json'
+import { Profile } from './profile.js'
 
 export interface SearchConfig {
   abortController?: AbortController
@@ -67,6 +68,7 @@ export class OramaClient {
   private readonly answersApiBaseURL: string | undefined
   private readonly collector?: Collector
   private readonly cache?: Cache<Results<AnyDocument>>
+  private readonly profile: Profile
   private searchDebounceTimer?: any // NodeJS.Timer
   private searchRequestCounter = 0
 
@@ -78,6 +80,9 @@ export class OramaClient {
     this.endpoint = params.endpoint
     this.answersApiBaseURL = params.answersApiBaseURL
 
+    // Enable profile tracking
+    this.profile = new Profile({ endpoint: this.endpoint, apiKey: this.api_key })
+
     // Telemetry is enabled by default
     if (params.telemetry !== false) {
       const telementryConfig = {
@@ -86,7 +91,7 @@ export class OramaClient {
         flushInterval: params.telemetry?.flushInterval ?? CONST.DEFAULT_TELEMETRY_FLUSH_INTERVAL,
         flushSize: params.telemetry?.flushSize ?? CONST.DEFAULT_TELEMETRY_FLUSH_SIZE
       }
-      this.collector = Collector.create(telementryConfig)
+      this.collector = Collector.create(telementryConfig, this.profile)
     }
 
     // Cache is enabled by default
@@ -131,7 +136,9 @@ export class OramaClient {
           roundTripTime,
           query,
           cached,
-          searchedAt: new Date()
+          searchedAt: new Date(),
+          userId: this.profile.getUserId(),
+          identity: this.profile.getIdentity()
         })
       }
 
@@ -150,7 +157,9 @@ export class OramaClient {
           roundTripTime,
           query,
           cached,
-          searchedAt: new Date()
+          searchedAt: new Date(),
+          userId: this.profile.getUserId(),
+          identity: this.profile.getIdentity()
         })
       }
     } else {
@@ -216,7 +225,9 @@ export class OramaClient {
         roundTripTime,
         query,
         cached,
-        searchedAt: new Date()
+        searchedAt: new Date(),
+        userId: this.profile.getUserId(),
+        identity: this.profile.getIdentity()
       })
     }
 
@@ -302,5 +313,28 @@ export class OramaClient {
     }
 
     return await res.json()
+  }
+
+  /**
+   * Methods associated with profile tracking
+   */
+  public getIdentity(): string | undefined {
+    return this.profile.getIdentity()
+  }
+
+  public getUserId(): string {
+    return this.profile.getUserId()
+  }
+
+  public async identify(identity: string): Promise<void> {
+    if (this.initPromise === undefined) {
+      throw new Error('OramaClient not initialized')
+    }
+
+    await this.profile.identify(this.initPromise, identity)
+  }
+
+  public reset(): void {
+    this.profile.reset()
   }
 }

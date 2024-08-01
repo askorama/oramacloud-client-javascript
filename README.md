@@ -193,3 +193,43 @@ const { results } = useSearch({
 });
 </script>
 ```
+
+## Identifying users
+
+### Usage with browsers
+
+1. Call the `.identify()` method with the user's unique identifier.
+2. Call `.reset()` when users log out.
+
+Note: we suggest developers to always call `.identify()` when users sign-up, log-in or when the user re-opens the application in a logged-in state.
+
+Example or already logged in state:
+
+```js
+
+import { OramaClient } from "@oramacloud/client";
+
+const client = new OramaClient({
+  endpoint: "<Your Orama Cloud Endpoint>",
+  api_key: "<Your Orama Cloud API Key>",
+});
+
+client.identify("<Your unique User ID>");
+
+client.search({
+  term: "red leather shoes",
+});
+```
+
+Upon logging out:
+
+```js
+client.reset();
+```
+
+### Usage with server-side applications
+
+1. Call the `.identify()` method with the user's unique identifier.
+2. Call `.reset()` when users log out.
+
+OramaClient will always generate a new userId upon **initialization**, so we suggest developers to call the `.reset()` function even when users are not necessarily identified. This will ensure that the client is not associated with the previous user, thus preventing improper data association between sessions.
