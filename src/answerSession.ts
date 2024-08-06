@@ -100,6 +100,15 @@ export class AnswerSession {
 
   public clearSession(): void {
     this.messages = []
+    this.state = []
+
+    if (this.events?.onMessageChange) {
+      this.events.onMessageChange(this.messages)
+    }
+
+    if (this.events?.onStateChange) {
+      this.events.onStateChange(this.state)
+    }
   }
 
   public abortAnswer() {
