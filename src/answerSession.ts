@@ -39,6 +39,8 @@ export type Interaction<T = AnyDocument> = {
   translatedQuery: Nullable<SearchParams<AnyOrama>>
   aborted: boolean
   loading: boolean
+  error: boolean
+  errorMessage: string | null
 }
 
 export type AskParams = SearchParams<AnyOrama> & {
@@ -112,11 +114,14 @@ export class AnswerSession {
   }
 
   public abortAnswer() {
-    if (this.abortController) {
-      this.abortController.abort()
-      this.abortController = undefined
-      this.state[this.state.length - 1].aborted = true
+    if (!this.abortController) {
+      throw new Error("AbortController is not ready")
     }
+
+    this.abortController.abort()
+    this.abortController = undefined
+    this.state[this.state.length - 1].aborted = true
+
   }
 
   public async regenerateLast({ stream = true } = {}): Promise<string | AsyncGenerator<string>> {
@@ -149,6 +154,10 @@ export class AnswerSession {
     this.lastInteractionParams = params
     const interactionId = createId()
 
+    let reader: ReadableStreamDefaultReader | null = null
+
+    const currentStateIndex = this.state.length
+
     this.state.push({
       interactionId,
       query: params.term ?? '',
@@ -157,75 +166,76 @@ export class AnswerSession {
       sources: null,
       translatedQuery: null,
       aborted: false,
-      loading: true
+      loading: true,
+      error: false,
+      errorMessage: null
     })
 
-    // needed to avoid race conditions later on
-    const currentStateIndex = this.state.findIndex((interaction) => interaction.interactionId === interactionId)
-
-    if (this.events?.onNewInteractionStarted) {
-      this.events.onNewInteractionStarted(interactionId)
-    }
-
-    if (this.events?.onStateChange) {
-      this.events.onStateChange(this.state)
-    }
-
-    const requestBody = new URLSearchParams()
-    requestBody.append('type', this.inferenceType)
-    requestBody.append('messages', JSON.stringify(this.messages))
-    requestBody.append('query', params.term ?? '')
-    requestBody.append('conversationId', this.conversationID)
-    requestBody.append('userId', this.oramaClient.getUserId())
-    // @ts-expect-error - yeah it's private but we need it here
-    requestBody.append('endpoint', this.oramaClient.endpoint)
-    requestBody.append('searchParams', JSON.stringify(params))
-    requestBody.append('identity', this.oramaClient.getIdentity() ?? '')
-    requestBody.append('interactionId', interactionId)
-
-    if (this.userContext) {
-      requestBody.append('userContext', serializeUserContext(this.userContext))
-    }
-
-    if (params.userData) {
-      requestBody.append('userData', serializeUserContext(params.userData))
-    }
-
-    if (params.related) {
-      if (params.related?.howMany && params.related?.howMany > 5) {
-        throw new Error('Can generate at most 5 related queries')
-      }
-
-      requestBody.append('related', JSON.stringify({ enabled: true, howMany: params.related.howMany ?? 3, format: params.related.format ?? 'question' }))
-    }
-
-    const response = await fetch(this.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: requestBody.toString(),
-      signal: this.abortController.signal
-    })
-
-    if (!response.ok || !response.body) {
-      throw new Error(response.statusText)
-    }
-
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    const messageQueue: string[] = []
-    let buffer = ''
-
-    if (this.events?.onMessageLoading) {
-      this.events.onMessageLoading(true)
-    }
-
-    this.addNewEmptyAssistantMessage()
-
-    const lastMessage = this.messages.at(-1) as Message
 
     try {
+      if (this.events?.onNewInteractionStarted) {
+        this.events.onNewInteractionStarted(interactionId)
+      }
+
+      if (this.events?.onStateChange) {
+        this.events.onStateChange(this.state)
+      }
+
+      const requestBody = new URLSearchParams()
+      requestBody.append('type', this.inferenceType)
+      requestBody.append('messages', JSON.stringify(this.messages))
+      requestBody.append('query', params.term ?? '')
+      requestBody.append('conversationId', this.conversationID)
+      requestBody.append('userId', this.oramaClient.getUserId())
+      // @ts-expect-error - yeah it's private but we need it here
+      requestBody.append('endpoint', this.oramaClient.endpoint)
+      requestBody.append('searchParams', JSON.stringify(params))
+      requestBody.append('identity', this.oramaClient.getIdentity() ?? '')
+      requestBody.append('interactionId', interactionId)
+
+      if (this.userContext) {
+        requestBody.append('userContext', serializeUserContext(this.userContext))
+      }
+
+      if (params.userData) {
+        requestBody.append('userData', serializeUserContext(params.userData))
+      }
+
+      if (params.related) {
+        if (params.related?.howMany && params.related?.howMany > 5) {
+          throw new Error('Can generate at most 5 related queries')
+        }
+
+        requestBody.append('related', JSON.stringify({ enabled: true, howMany: params.related.howMany ?? 3, format: params.related.format ?? 'question' }))
+      }
+
+      const response = await fetch(this.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: requestBody.toString(),
+        signal: this.abortController.signal
+      })
+
+      if (!response.ok || !response.body) {
+        throw new Error(response.statusText)
+      }
+
+      reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      const messageQueue: string[] = []
+      let buffer = ''
+
+      if (this.events?.onMessageLoading) {
+        this.events.onMessageLoading(true)
+      }
+
+      this.addNewEmptyAssistantMessage()
+
+      const lastMessage = this.messages.at(-1) as Message
+
+
       while (true) {
         const { value, done } = await reader.read()
         if (done) break
@@ -308,33 +318,29 @@ export class AnswerSession {
           }
         }
       }
-    } catch (err) {
-      if ((err as any).name === 'AbortError') {
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
         this.state[currentStateIndex].aborted = true
-        this.state[currentStateIndex].loading = false
-
-        if (this.events?.onStateChange) {
-          this.events.onStateChange(this.state)
-        }
 
         if (this.events?.onAnswerAborted) {
           this.events.onAnswerAborted(true)
         }
       } else {
+        this.state[currentStateIndex].error = true
+        this.state[currentStateIndex].errorMessage = err.message ?? 'Unknown error'
         throw err
       }
     } finally {
-      reader.releaseLock()
-    }
+      reader?.releaseLock()
+      this.state[currentStateIndex].loading = false
 
-    this.state[currentStateIndex].loading = false
+      if (this.events?.onStateChange) {
+        this.events.onStateChange(this.state)
+      }
 
-    if (this.events?.onStateChange) {
-      this.events.onStateChange(this.state)
-    }
-
-    if (this.events?.onMessageLoading) {
-      this.events.onMessageLoading(false)
+      if (this.events?.onMessageLoading) {
+        this.events.onMessageLoading(false)
+      }
     }
   }
 }
