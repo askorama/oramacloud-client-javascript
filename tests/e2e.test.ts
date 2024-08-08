@@ -2,7 +2,6 @@ import type { SummaryParams } from '../src/proxy.js'
 
 import t from 'node:test'
 import assert from 'node:assert'
-import { setTimeout } from 'node:timers/promises'
 import { OramaProxy } from '../src/proxy.js'
 import { OramaClient } from '../src/client.js'
 import { CloudManager } from '../src/manager/index.js'
@@ -19,29 +18,29 @@ await t.test('secure proxy', async t => {
 
   await t.test('summaryStream should abort previous requests', async t => {
     const client = createProxy();
-  
+
     const summaryStreamFirst = client.summaryStream({
       docIDs: ['3', '1', '2'],
       indexID: 'e2e-test-01',
       model: 'openai/gpt-3.5-turbo',
       prompt: 'Initial request'
     });
-  
+
     const firstResponse = await summaryStreamFirst.next();
     assert.ok(!firstResponse.done && firstResponse.value, 'First request should yield data');
-  
+
     const summaryStreamSecond = client.summaryStream({
       docIDs: ['4', '5', '6'],
       indexID: 'e2e-test-02',
       model: 'openai/gpt-3.5-turbo',
       prompt: 'Subsequent request'
     });
-  
+
     // await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for the second stream to potentially yield data
-  
+
     const secondResponse = await summaryStreamSecond.next();
     assert.ok(!secondResponse.done && secondResponse.value, 'Second request should yield data');
-  
+
     const nextFirstResponse = await summaryStreamFirst.next();
     assert.ok(nextFirstResponse.done, 'First stream should be canceled');
   });
@@ -339,6 +338,36 @@ await t.test('state management via answer session APIs', async t => {
     assert.equal(state[1].query, 'labrador')
     assert.equal(state[0].aborted, false)
   })
+
+  await t.test('aborting before .ask resolution', async t => {
+    let externalState: Interaction[] = []
+
+    const session = client.createAnswerSession({
+      events: {
+        onStateChange: (incomingState) => {
+          externalState = incomingState
+        }
+      },
+    })
+
+    session.ask({
+      term: 'german',
+      related: {
+        format: 'query',
+        howMany: 3
+      }
+    })
+
+    // Next diggest
+    setTimeout(() => {
+      session.abortAnswer()
+
+      assert.equal(externalState.length, 1)
+      assert.equal(externalState[0].query, "german")
+      assert.equal(externalState[0].aborted, true)
+      assert.equal(externalState[0].error, false)
+    });
+  })
 })
 
 await t.test('regenerate last answer', async t => {
@@ -365,7 +394,7 @@ await t.test('regenerate last answer', async t => {
   await answerSession.ask({
     term: 'german'
   })
-  
+
   await answerSession.ask({
     term: 'labrador'
   })
