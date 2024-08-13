@@ -233,3 +233,23 @@ client.reset();
 2. Call `.reset()` when users log out.
 
 OramaClient will always generate a new userId upon **initialization**, so we suggest developers to call the `.reset()` function even when users are not necessarily identified. This will ensure that the client is not associated with the previous user, thus preventing improper data association between sessions.
+
+### Usage of Alias
+
+Aliases are employed to link multiple identifiers to a single user, enabling the tracking of anonymous users across different sessions. This is particularly beneficial for monitoring users who are not logged in or who access the platform from various devices.
+
+```js
+import { OramaClient } from "@oramacloud/client";
+
+const client = new OramaClient({
+  endpoint: "<Your Orama Cloud Endpoint>",
+  api_key: "<Your Orama Cloud API Key>",
+});
+
+// Sets the alias for the current user
+client.alias("<Unique Alias ID>");
+
+client.search({
+  term: "red leather shoes",
+});
+```

@@ -36,6 +36,7 @@ export class Collector {
       searchedAt: data.searchedAt,
       userId: this.profile.getUserId(),
       identity: this.profile.getIdentity(),
+      alias: this.profile.getAlias(),
       // The referer is different for every event:
       // the user can search in different pages of the website
       // and the referer will be different for each page
