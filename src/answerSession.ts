@@ -192,6 +192,7 @@ export class AnswerSession {
       requestBody.append('searchParams', JSON.stringify(params))
       requestBody.append('identity', this.oramaClient.getIdentity() ?? '')
       requestBody.append('interactionId', interactionId)
+      requestBody.append('alias', this.oramaClient.getAlias() ?? '')
 
       if (this.userContext) {
         requestBody.append('userContext', serializeUserContext(this.userContext))

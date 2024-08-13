@@ -13,6 +13,7 @@ export interface SearchEvent {
   userId: string
   cached?: boolean
   identity?: string
+  alias?: string
 }
 
 export interface ICollector {

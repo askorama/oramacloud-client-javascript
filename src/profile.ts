@@ -14,6 +14,7 @@ export class Profile {
 
   private userId: string
   private identity?: string
+  private userAlias?: string
 
   constructor({ endpoint, apiKey }: ProfileConstructor) {
     if (!endpoint || !apiKey) {
@@ -51,6 +52,10 @@ export class Profile {
     return this.userId
   }
 
+  getAlias() {
+    return this.userAlias
+  }
+
   async identify(initPromise: Promise<OramaInitResponse | null>, identity: string) {
     if (typeof identity !== 'string') {
       throw new Error('Identity must be a string')
@@ -59,6 +64,16 @@ export class Profile {
     await initPromise
 
     this.identity = identity
+  }
+
+  async alias(initPromise: Promise<OramaInitResponse | null>, alias: string) {
+    if (typeof alias !== 'string') {
+      throw new Error('Identity must be a string')
+    }
+
+    await initPromise
+
+    this.userAlias = alias
   }
 
   reset() {
