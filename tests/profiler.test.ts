@@ -105,6 +105,20 @@ await t.test('profiler', async (t) => {
     assert.equal(ident, identity)
   })
 
+  await t.test('should call identifier service to set alias to user', async (t) => {
+    const client = new OramaClient({
+      endpoint,
+      api_key: apiKey
+    })
+
+    const alias = 'mocked-alias'
+
+    await client.alias(alias)
+
+    const ident = client.getAlias()
+    assert.equal(ident, alias)
+  })
+
   await t.test('should reset the user id', async (t) => {
     const client = new OramaClient({
       endpoint,
@@ -139,6 +153,12 @@ async function setUpServer(t: any): Promise<{
       collectUrl: `http://localhost:${port}/collect`,
       deploymentID: 'the-deployment-id',
       index: 'my-index'
+    }
+  })
+
+  fastify.get('/identify', async (request, reply) => {
+    return {
+      status: 'ok'
     }
   })
 

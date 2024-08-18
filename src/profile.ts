@@ -75,7 +75,7 @@ export class Profile {
 
     const body = JSON.stringify({
       ...data,
-      userId: this.getUserId()
+      visitorId: this.getUserId()
     })
 
     await sendBeacon(`${this.params?.identifyUrl}?api-key=${this.apiKey}`, body)
@@ -92,6 +92,8 @@ export class Profile {
       entity: 'identify',
       identity
     })
+
+    this.identity = identity
   }
 
   async alias(initPromise: Promise<OramaInitResponse | null>, alias: string) {
@@ -105,6 +107,8 @@ export class Profile {
       entity: 'alias',
       alias
     })
+
+    this.userAlias = alias
   }
 
   reset() {
