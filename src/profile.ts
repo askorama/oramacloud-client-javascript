@@ -8,6 +8,11 @@ type ProfileConstructor = {
   apiKey: string
 }
 
+type ProfileParams = {
+  identifyUrl: string
+  index: string
+}
+
 export class Profile {
   private readonly endpoint: string
   private readonly apiKey: string
@@ -15,6 +20,7 @@ export class Profile {
   private userId: string
   private identity?: string
   private userAlias?: string
+  private params?: ProfileParams
 
   constructor({ endpoint, apiKey }: ProfileConstructor) {
     if (!endpoint || !apiKey) {
@@ -44,6 +50,16 @@ export class Profile {
     this.apiKey = apiKey
   }
 
+  setParams(params: ProfileParams) {
+    const { protocol, host } = new URL(params.identifyUrl)
+    const telemetryDomain = `${protocol}//${host}/identify`
+
+    this.params = {
+      identifyUrl: telemetryDomain,
+      index: params.index
+    }
+  }
+
   getIdentity() {
     return this.identity
   }
@@ -56,12 +72,31 @@ export class Profile {
     return this.userAlias
   }
 
+  private async sendProfileData(data: Record<string, any>) {
+    if (!this.params) {
+      throw new Error('Orama Profile is not initialized')
+    }
+
+    const body = JSON.stringify({
+      ...data,
+      visitorId: this.getUserId(),
+      index: this.params.index
+    })
+
+    await sendBeacon(`${this.params?.identifyUrl}?api-key=${this.apiKey}`, body)
+  }
+
   async identify(initPromise: Promise<OramaInitResponse | null>, identity: string) {
     if (typeof identity !== 'string') {
       throw new Error('Identity must be a string')
     }
 
     await initPromise
+
+    await this.sendProfileData({
+      entity: 'identity',
+      id: identity
+    })
 
     this.identity = identity
   }
@@ -73,11 +108,17 @@ export class Profile {
 
     await initPromise
 
+    await this.sendProfileData({
+      entity: 'alias',
+      id: alias
+    })
+
     this.userAlias = alias
   }
 
   reset() {
     this.userId = createId()
     this.identity = undefined
+    this.userAlias = undefined
   }
 }

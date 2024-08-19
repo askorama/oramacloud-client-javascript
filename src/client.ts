@@ -137,9 +137,7 @@ export class OramaClient {
           query,
           cached,
           searchedAt: new Date(),
-          userId: this.profile.getUserId(),
-          identity: this.profile.getIdentity(),
-          alias: this.profile.getAlias()
+          userId: this.profile.getUserId()
         })
       }
 
@@ -159,9 +157,7 @@ export class OramaClient {
           query,
           cached,
           searchedAt: new Date(),
-          userId: this.profile.getUserId(),
-          identity: this.profile.getIdentity(),
-          alias: this.profile.getAlias()
+          userId: this.profile.getUserId()
         })
       }
     } else {
@@ -228,9 +224,7 @@ export class OramaClient {
         query,
         cached,
         searchedAt: new Date(),
-        userId: this.profile.getUserId(),
-        identity: this.profile.getIdentity(),
-        alias: this.profile.getAlias()
+        userId: this.profile.getUserId()
       })
     }
 
@@ -271,6 +265,11 @@ export class OramaClient {
         this.collector?.setParams({
           endpoint: b.collectUrl,
           deploymentID: b.deploymentID,
+          index: b.index
+        })
+
+        this.profile?.setParams({
+          identifyUrl: b.collectUrl,
           index: b.index
         })
 
@@ -341,10 +340,6 @@ export class OramaClient {
     await this.profile.identify(this.initPromise, identity)
   }
 
-  /**
-   * Set the alias for the current distinct id (orama_user_id)
-   * @param alias The alias to be set for the user
-   */
   public async alias(alias: string): Promise<void> {
     if (this.initPromise === undefined) {
       throw new Error('OramaClient not initialized')
