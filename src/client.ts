@@ -269,7 +269,8 @@ export class OramaClient {
         })
 
         this.profile?.setParams({
-          identifyUrl: b.collectUrl
+          identifyUrl: b.collectUrl,
+          index: b.index
         })
 
         return b

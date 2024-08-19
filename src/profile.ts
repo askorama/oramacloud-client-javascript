@@ -10,6 +10,7 @@ type ProfileConstructor = {
 
 type ProfileParams = {
   identifyUrl: string
+  index: string
 }
 
 export class Profile {
@@ -53,7 +54,10 @@ export class Profile {
     const { protocol, host } = new URL(params.identifyUrl)
     const telemetryDomain = `${protocol}//${host}/identify`
 
-    this.params = { identifyUrl: telemetryDomain }
+    this.params = {
+      identifyUrl: telemetryDomain,
+      index: params.index
+    }
   }
 
   getIdentity() {
@@ -75,7 +79,8 @@ export class Profile {
 
     const body = JSON.stringify({
       ...data,
-      visitorId: this.getUserId()
+      visitorId: this.getUserId(),
+      index: this.params.index
     })
 
     await sendBeacon(`${this.params?.identifyUrl}?api-key=${this.apiKey}`, body)
@@ -89,8 +94,8 @@ export class Profile {
     await initPromise
 
     await this.sendProfileData({
-      entity: 'identify',
-      identity
+      entity: 'identity',
+      id: identity
     })
 
     this.identity = identity
@@ -105,7 +110,7 @@ export class Profile {
 
     await this.sendProfileData({
       entity: 'alias',
-      alias
+      id: alias
     })
 
     this.userAlias = alias
