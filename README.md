@@ -92,10 +92,11 @@ console.log(response);
 
 Available models:
 
-- `openai/gpt-4-1106-preview`
+- `openai/gpt-4o`
+- `openai/gpt-4o-mini`
+- `openai/gpt-4-turbo`
 - `openai/gpt-4`
 - `openai/gpt-3.5-turbo`
-- `openai/gpt-3.5-turbo-16k`
 
 ### Returning a stream (via async iterators)
 
@@ -128,10 +129,11 @@ for await (const message of proxy.chatStream(chatParams)) {
 
 Available models:
 
-- `openai/gpt-4-1106-preview`
+- `openai/gpt-4o`
+- `openai/gpt-4o-mini`
+- `openai/gpt-4-turbo`
 - `openai/gpt-4`
 - `openai/gpt-3.5-turbo`
-- `openai/gpt-3.5-turbo-16k`
 
 ## With React
 
