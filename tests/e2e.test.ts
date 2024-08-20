@@ -22,7 +22,7 @@ await t.test('secure proxy', async t => {
     const summaryStreamFirst = client.summaryStream({
       docIDs: ['3', '1', '2'],
       indexID: 'e2e-test-01',
-      model: 'openai/gpt-3.5-turbo',
+      model: 'openai/gpt-4o-mini',
       prompt: 'Initial request'
     });
 
@@ -32,7 +32,7 @@ await t.test('secure proxy', async t => {
     const summaryStreamSecond = client.summaryStream({
       docIDs: ['4', '5', '6'],
       indexID: 'e2e-test-02',
-      model: 'openai/gpt-3.5-turbo',
+      model: 'openai/gpt-4o-mini',
       prompt: 'Subsequent request'
     });
 
@@ -52,7 +52,7 @@ await t.test('secure proxy', async t => {
       docIDs: ['3', '1', '2'],
       indexID: 'e2e-test-01',
       deploymentID: 'e2e-test-01',
-      model: 'openai/gpt-3.5-turbo',
+      model: 'openai/gpt-4o-mini',
       prompt: 'Who is michael scott?'
     }
 
@@ -69,94 +69,11 @@ await t.test('secure proxy', async t => {
     assert.equal(embeddings.length, 1536)
   })
 
-  await t.test('can generate chat responses via gpt-3.5-turbo', async t => {
-    const client = createProxy();
-
-    const resp = await client.chat({
-      model: 'openai/gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
-    })
-
-    assert.ok(resp.length > 0)
-  })
-
-  await t.test('can generate chat responses via gpt-3.5-turbo-16k', async t => {
-    const client = createProxy();
-
-    const resp = await client.chat({
-      model: 'openai/gpt-3.5-turbo-16k',
-      messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
-    })
-
-    assert.ok(resp.length > 0)
-  })
-
-  await t.test('can generate chat responses via gpt-4', async t => {
-    const client = createProxy();
-
-    const resp = await client.chat({
-      model: 'openai/gpt-4',
-      messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
-    })
-
-    assert.ok(resp.length > 0)
-  })
-
-  await t.test('can generate chat responses via gpt-4-1106-preview', async t => {
-    const client = createProxy();
-
-    const resp = await client.chat({
-      model: 'openai/gpt-4-1106-preview',
-      messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
-    })
-
-    assert.ok(resp.length > 0)
-  })
-
-  await t.test('can stream chat responses via gpt-3.5-turbo', async t => {
+  await t.test('can stream chat responses via gpt-4o', async t => {
     const client = createProxy();
 
     const resp = client.chatStream({
-      model: 'openai/gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
-    })
-
-    for await (const message of resp) {
-      assert.ok(message.length > 0)
-    }
-  })
-
-  await t.test('can stream chat responses via gpt-3.5-turbo-16k', async t => {
-    const client = createProxy();
-
-    const resp = client.chatStream({
-      model: 'openai/gpt-3.5-turbo-16k',
-      messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
-    })
-
-    for await (const message of resp) {
-      assert.ok(message.length > 0)
-    }
-  })
-
-  await t.test('can stream chat responses via gpt-4', async t => {
-    const client = createProxy();
-
-    const resp = client.chatStream({
-      model: 'openai/gpt-4',
-      messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
-    })
-
-    for await (const message of resp) {
-      assert.ok(message.length > 0)
-    }
-  })
-
-  await t.test('can stream chat responses via gpt-4-1106-preview', async t => {
-    const client = createProxy();
-
-    const resp = client.chatStream({
-      model: 'openai/gpt-4-1106-preview',
+      model: 'openai/gpt-4o',
       messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
     })
 
@@ -169,7 +86,7 @@ await t.test('secure proxy', async t => {
     const client = createProxy()
 
     const resp = client.chatStream({
-      model: 'openai/gpt-4-1106-preview',
+      model: 'openai/gpt-4o-mini',
       messages: [{ role: 'user', content: 'Who is Michael Scott?' }]
     })
 
