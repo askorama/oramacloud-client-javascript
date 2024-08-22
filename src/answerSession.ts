@@ -115,13 +115,12 @@ export class AnswerSession {
 
   public abortAnswer() {
     if (!this.abortController) {
-      throw new Error("AbortController is not ready")
+      throw new Error('AbortController is not ready')
     }
 
     this.abortController.abort()
     this.abortController = undefined
     this.state[this.state.length - 1].aborted = true
-
   }
 
   public async regenerateLast({ stream = true } = {}): Promise<string | AsyncGenerator<string>> {
@@ -170,7 +169,6 @@ export class AnswerSession {
       error: false,
       errorMessage: null
     })
-
 
     try {
       if (this.events?.onNewInteractionStarted) {
@@ -235,7 +233,6 @@ export class AnswerSession {
       this.addNewEmptyAssistantMessage()
 
       const lastMessage = this.messages.at(-1) as Message
-
 
       while (true) {
         const { value, done } = await reader.read()

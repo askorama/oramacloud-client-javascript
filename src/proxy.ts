@@ -28,7 +28,6 @@ const ORAMA_EMBEDDINGS_MODEL_GTE_SMALL = 'gte-small'
 const ORAMA_EMBEDDINGS_MODEL_GTE_MEDIUM = 'gte-medium'
 const ORAMA_EMBEDDINGS_MODEL_GTE_LARGE = 'gte-large'
 
-
 const OPENAI_CHAT_MODE_GPT_4O = 'gpt-4o'
 const OPENAI_CHAT_MODE_GPT_4O_MINI = 'gpt-4o-mini'
 const OPENAI_CHAT_MODE_GPT_4_TURBO = 'gpt-4-turbo'
