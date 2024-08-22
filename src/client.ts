@@ -103,7 +103,8 @@ export class OramaClient {
     this.init()
   }
 
-  public async search<SchemaType extends object, DocumentType extends InternalTypedDocument<SchemaType> = AnyDocument>(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<DocumentType>>> {
+  public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<AnyDocument>>>;
+  public async search<SchemaType extends object, DocumentType extends InternalTypedDocument<SchemaType> = InternalTypedDocument<SchemaType>>(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<DocumentType>>> {
     await this.initPromise
 
     const currentRequestNumber = ++this.searchRequestCounter
