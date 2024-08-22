@@ -63,7 +63,7 @@ export type AnswerSessionParams = {
 export { AnswerSession, Message }
 
 function isAbortController(signal: AbortSignal | AbortController | undefined): signal is AbortController {
-  return signal && (signal as AbortController)?.signal !== undefined
+  return signal !== undefined && (signal as AbortController)?.signal !== undefined
 }
 
 export class OramaClient {
