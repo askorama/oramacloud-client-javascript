@@ -302,6 +302,7 @@ export class OramaClient {
       const b = body as any
       b.version = version
       b.id = this.id
+      b.visitorId = this.profile.getUserId()
 
       requestOptions.body = Object.entries(b)
         .map(([key, value]) => `${key}=${encodeURIComponent(JSON.stringify(value))}`)
