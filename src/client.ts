@@ -1,5 +1,5 @@
 import type { Endpoint, IOramaClient, Method, OramaInitResponse, HeartBeatConfig, OramaError, Override } from './types.js'
-import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable } from '@orama/orama'
+import type { SearchParams, Results, AnyDocument, AnyOrama, Nullable, InternalTypedDocument } from '@orama/orama'
 import type { Message, InferenceType, Interaction } from './answerSession.js'
 import { formatElapsedTime } from '@orama/orama/components'
 import { createId } from '@paralleldrive/cuid2'
@@ -103,7 +103,7 @@ export class OramaClient {
     this.init()
   }
 
-  public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<AnyDocument>>> {
+  public async search<SchemaType extends object, DocumentType extends InternalTypedDocument<SchemaType> = AnyDocument>(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<DocumentType>>> {
     await this.initPromise
 
     const currentRequestNumber = ++this.searchRequestCounter
