@@ -28,6 +28,7 @@ export interface OramaInitResponse {
   collectUrl: string
   index: string
   pop: string
+  searchSession?: { token: string; maxAge: number } | { required: true }
 }
 
 export interface IOramaClient {

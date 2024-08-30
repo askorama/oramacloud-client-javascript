@@ -71,6 +71,7 @@ export class OramaClient {
   private readonly profile: Profile
   private searchDebounceTimer?: any // NodeJS.Timer
   private searchRequestCounter = 0
+  private blockSearchTillAuth = false
 
   private heartbeat?: HeartBeat
   private initPromise?: Promise<OramaInitResponse | null>
@@ -103,9 +104,38 @@ export class OramaClient {
     this.init()
   }
 
-  public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<AnyDocument>>>;
-  public async search<SchemaType extends object, DocumentType extends InternalTypedDocument<SchemaType> = InternalTypedDocument<SchemaType>>(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<DocumentType>>> {
+  private customerUserToken: string | undefined = undefined
+  private searchToken: string | undefined = undefined
+  public setAuthToken(customerAuthToken: string | null) {
+    if (customerAuthToken === null) {
+      // unlogged user
+      this.customerUserToken = undefined
+      this.searchToken = undefined
+    } else {
+      this.customerUserToken = customerAuthToken
+      // forgot the previous search token
+      this.searchToken = undefined
+    }
+    // Re-do the init
+    this.init()
+  }
+
+  private onAuthTokenExpired?: (token: string) => void
+  public setOnAuthTokenExpired(onAuthTokenExpired: (token: string) => void) {
+    this.onAuthTokenExpired = onAuthTokenExpired
+  }
+
+  public async search(query: ClientSearchParams, config?: SearchConfig): Promise<Nullable<Results<AnyDocument>>>
+  public async search<SchemaType extends object, DocumentType extends InternalTypedDocument<SchemaType> = InternalTypedDocument<SchemaType>>(
+    query: ClientSearchParams,
+    config?: SearchConfig
+  ): Promise<Nullable<Results<DocumentType>>> {
     await this.initPromise
+
+    // Avoid perform search if the user is not authenticated yet
+    if (this.blockSearchTillAuth) {
+      return null
+    }
 
     const currentRequestNumber = ++this.searchRequestCounter
     const cacheKey = `search-${JSON.stringify(query)}`
@@ -118,7 +148,7 @@ export class OramaClient {
     const performSearch = async () => {
       try {
         const timeStart = Date.now()
-        searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query }, config?.abortController)
+        searchResults = await this.fetch<Results<AnyDocument>>('search', 'POST', { q: query, sst: this.searchToken }, config?.abortController)
         const timeEnd = Date.now()
         searchResults.elapsed = await formatElapsedTime(BigInt(timeEnd * CONST.MICROSECONDS_BASE - timeStart * CONST.MICROSECONDS_BASE))
         roundTripTime = timeEnd - timeStart
@@ -179,6 +209,9 @@ export class OramaClient {
             },
             config?.debounce || 300
           )
+          if ('unref' in this.searchDebounceTimer) {
+            this.searchDebounceTimer.unref()
+          }
         })
       }
 
@@ -260,8 +293,9 @@ export class OramaClient {
     return g?.pop ?? ''
   }
 
+  private expirationTimer: ReturnType<typeof setTimeout> | undefined
   private init(): void {
-    this.initPromise = this.fetch<OramaInitResponse>('init', 'GET')
+    this.initPromise = this.fetch<OramaInitResponse>('init', 'GET', undefined, undefined, { token: this.customerUserToken })
       .then((b) => {
         this.collector?.setParams({
           endpoint: b.collectUrl,
@@ -274,6 +308,31 @@ export class OramaClient {
           index: b.index
         })
 
+        if (b.searchSession) {
+          if ('required' in b.searchSession && b.searchSession.required === true) {
+            this.blockSearchTillAuth = true
+          } else if ('token' in b.searchSession) {
+            const searchToken = b.searchSession.token
+            this.searchToken = searchToken
+            const maxAge = b.searchSession.maxAge
+            this.blockSearchTillAuth = false
+
+            if (this.expirationTimer) {
+              clearTimeout(this.expirationTimer)
+            }
+            this.expirationTimer = setTimeout(() => {
+              if (this.searchToken === searchToken) {
+                this.searchToken = undefined
+                this.blockSearchTillAuth = true
+                this.onAuthTokenExpired?.(searchToken)
+              }
+            }, maxAge * 1000)
+            if ('unref' in this.expirationTimer) {
+              this.expirationTimer.unref()
+            }
+          }
+        }
+
         return b
       })
       .catch((err) => {
@@ -282,7 +341,13 @@ export class OramaClient {
       })
   }
 
-  private async fetch<T = unknown>(path: Endpoint, method: Method, body?: object, abortController?: AbortController): Promise<T> {
+  private async fetch<T = unknown>(
+    path: Endpoint,
+    method: Method,
+    body?: object,
+    abortController?: AbortController,
+    queryParams?: Record<string, string | undefined>
+  ): Promise<T> {
     if (abortController?.signal.aborted === true) {
       throw new Error('Request aborted')
     }
@@ -305,10 +370,21 @@ export class OramaClient {
       b.visitorId = this.profile.getUserId()
 
       requestOptions.body = Object.entries(b)
+        .filter(([_, value]) => !!value)
         .map(([key, value]) => `${key}=${encodeURIComponent(JSON.stringify(value))}`)
         .join('&')
     }
-    const res: Response = await fetch(`${this.endpoint}/${path}?api-key=${this.api_key}`, requestOptions)
+
+    const url = new URL(`${this.endpoint}/${path}`)
+    url.searchParams.append('api-key', this.api_key)
+    if (queryParams) {
+      for (const [key, value] of Object.entries(queryParams)) {
+        if (value) {
+          url.searchParams.append(key, value)
+        }
+      }
+    }
+    const res: Response = await fetch(url, requestOptions)
 
     if (!res.ok) {
       const error = new Error() as OramaError
