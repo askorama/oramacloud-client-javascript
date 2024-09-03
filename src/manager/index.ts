@@ -33,9 +33,11 @@ type InsertPayload = {
 export class CloudManager {
   private indexId: Nullable<string> = null
   private apiKey: string
+  private baseURL: string
 
-  constructor(config: CloudManagerConfig) {
+  constructor(config: CloudManagerConfig, baseURL = API_V1_BASE_URL) {
     this.apiKey = config.api_key
+    this.baseURL = baseURL
   }
 
   index(indexId: string): IndexManager {
@@ -59,7 +61,7 @@ export class CloudManager {
       config.body = JSON.stringify(payload)
     }
 
-    const resp = await fetch(`${API_V1_BASE_URL}/webhooks/${this.indexId}/${endpoint}`, config)
+    const resp = await fetch(`${this.baseURL}/webhooks/${this.indexId}/${endpoint}`, config)
 
     return resp.json()
   }
