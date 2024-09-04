@@ -4,7 +4,8 @@ import { IndexManager } from './index-manager.js'
 import { API_V1_BASE_URL } from './constants.js'
 
 type CloudManagerConfig = {
-  api_key: string
+  api_key: string,
+  baseURL?: string
 }
 
 type CallConfig = {
@@ -35,9 +36,9 @@ export class CloudManager {
   private apiKey: string
   private baseURL: string
 
-  constructor(config: CloudManagerConfig, baseURL = API_V1_BASE_URL) {
+  constructor(config: CloudManagerConfig) {
     this.apiKey = config.api_key
-    this.baseURL = baseURL
+    this.baseURL = config?.baseURL || API_V1_BASE_URL
   }
 
   index(indexId: string): IndexManager {
