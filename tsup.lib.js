@@ -10,9 +10,10 @@ export default defineConfig({
   minify: true,
   format: ['cjs', 'esm', 'iife'],
   globalName: 'OramaClient',
+  platform: 'neutral',
   dts: true,
   clean: true,
   bundle: true,
   outDir,
-  noExternal: ['@orama']
+  noExternal: ['@orama', '@paralleldrive']
 })
