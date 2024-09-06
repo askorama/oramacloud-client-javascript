@@ -134,6 +134,7 @@ export class OramaClient {
 
     // Avoid perform search if the user is not authenticated yet
     if (this.blockSearchTillAuth) {
+      console.warn('Search request blocked until user is authenticated')
       return null
     }
 
