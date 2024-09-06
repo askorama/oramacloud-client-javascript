@@ -4,7 +4,8 @@ import { IndexManager } from './index-manager.js'
 import { API_V1_BASE_URL } from './constants.js'
 
 type CloudManagerConfig = {
-  api_key: string
+  api_key: string,
+  baseURL?: string
 }
 
 type CallConfig = {
@@ -33,9 +34,11 @@ type InsertPayload = {
 export class CloudManager {
   private indexId: Nullable<string> = null
   private apiKey: string
+  private baseURL: string
 
   constructor(config: CloudManagerConfig) {
     this.apiKey = config.api_key
+    this.baseURL = config?.baseURL || API_V1_BASE_URL
   }
 
   index(indexId: string): IndexManager {
@@ -59,7 +62,7 @@ export class CloudManager {
       config.body = JSON.stringify(payload)
     }
 
-    const resp = await fetch(`${API_V1_BASE_URL}/webhooks/${this.indexId}/${endpoint}`, config)
+    const resp = await fetch(`${this.baseURL}/webhooks/${this.indexId}/${endpoint}`, config)
 
     return resp.json()
   }
