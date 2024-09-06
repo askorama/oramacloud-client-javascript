@@ -2,6 +2,7 @@ export const ENDPOINT_SNAPSHOT = 'snapshot'
 export const ENDPOINT_NOTIFY = 'notify'
 export const ENDPOINT_DEPLOY = 'deploy'
 export const ENDPOINT_HAS_DATA = 'has-data'
+export const ENDPOINT_UPDATE_SCHEMA = 'update-schema'
 
 export const METHOD_POST = 'POST'
 export const METHOD_GET = 'GET'
