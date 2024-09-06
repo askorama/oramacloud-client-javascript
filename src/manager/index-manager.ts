@@ -1,6 +1,6 @@
 import type { Nullable } from '@orama/orama'
 import type { CloudManager } from './index.js'
-import type { Endpoint, EndpointDeploy, EndpointHasData, EndpointNotify, EndpointSnapshot } from './types.js'
+import type { Endpoint, EndpointDeploy, EndpointHasData, EndpointNotify, EndpointSnapshot, EndpointUpdateSchema } from './types.js'
 import * as CONST from './constants.js'
 
 type IndexManagerParams = {
@@ -57,6 +57,16 @@ export class IndexManager {
       return false
     }
 
+    return true
+  }
+
+  public async updateSchema(schema: any): Promise<boolean> {
+    try {
+      await this.callIndexWebhook<EndpointUpdateSchema>(CONST.ENDPOINT_UPDATE_SCHEMA, schema)
+    } catch (e) {
+      console.error(e)
+      return false
+    }
     return true
   }
 
