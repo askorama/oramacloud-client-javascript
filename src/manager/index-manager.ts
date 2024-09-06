@@ -16,7 +16,9 @@ type CallWebhookPayload<E extends Endpoint> = E extends EndpointSnapshot
     ? any[]
     : E extends EndpointDeploy
       ? undefined
-      : never
+      : E extends EndpointUpdateSchema 
+        ? { schema: { [key: string]: any }, embeddings?: any }
+        : never
 
 export class IndexManager {
   private manager: CloudManager
@@ -60,7 +62,7 @@ export class IndexManager {
     return true
   }
 
-  public async updateSchema(schema: any): Promise<boolean> {
+  public async updateSchema(schema: CallWebhookPayload<EndpointUpdateSchema>): Promise<boolean> {
     try {
       await this.callIndexWebhook<EndpointUpdateSchema>(CONST.ENDPOINT_UPDATE_SCHEMA, schema)
     } catch (e) {
