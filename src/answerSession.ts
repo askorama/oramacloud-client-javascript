@@ -192,6 +192,11 @@ export class AnswerSession {
       requestBody.append('interactionId', interactionId)
       requestBody.append('alias', this.oramaClient.getAlias() ?? '')
 
+      const systemPromptConfiguration = this.oramaClient.getSystemPromptConfiguration()
+      if (systemPromptConfiguration) {
+        requestBody.append('systemPrompts', JSON.stringify(systemPromptConfiguration))
+      }
+
       if (this.userContext) {
         requestBody.append('userContext', serializeUserContext(this.userContext))
       }
