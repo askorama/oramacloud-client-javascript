@@ -69,6 +69,7 @@ export class OramaClient {
   private readonly collector?: Collector
   private readonly cache?: Cache<Results<AnyDocument>>
   private readonly profile: Profile
+  private systemPrompts?: string[]
   private searchDebounceTimer?: any // NodeJS.Timer
   private searchRequestCounter = 0
   private blockSearchTillAuth = false
@@ -429,5 +430,22 @@ export class OramaClient {
 
   public reset(): void {
     this.profile.reset()
+  }
+
+  /**
+   * Methods associated with custom system prompts
+   */
+  public setSystemPromptConfiguration(config: { systemPrompts: string[] }): void {
+    if (Array.isArray(config.systemPrompts)) {
+      if (!config.systemPrompts.every((prompt) => typeof prompt === 'string')) {
+        throw new Error('Invalid system prompt configuration')
+      }
+
+      this.systemPrompts = config.systemPrompts
+    }
+  }
+
+  public getSystemPromptConfiguration(): string[] | undefined {
+    return this.systemPrompts
   }
 }
