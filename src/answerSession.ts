@@ -27,7 +27,8 @@ export type AnswerParams<UserContext = unknown> = {
     onRelatedQueries?: (relatedQueries: string[]) => void
     onNewInteractionStarted?: (interactionId: string) => void
     onStateChange?: (state: Interaction[]) => void
-  }
+  },
+  systemPrompts?: string[]
 }
 
 export type Interaction<T = AnyDocument> = {
@@ -62,6 +63,8 @@ export class AnswerSession {
   private conversationID: string
   private lastInteractionParams?: AskParams
   public state: Interaction[] = []
+  private systemPrompts?: string[]
+
 
   constructor(params: AnswerParams) {
     // @ts-expect-error - sorry again TypeScript :-)
@@ -192,7 +195,7 @@ export class AnswerSession {
       requestBody.append('interactionId', interactionId)
       requestBody.append('alias', this.oramaClient.getAlias() ?? '')
 
-      const systemPromptConfiguration = this.oramaClient.getSystemPromptConfiguration()
+      const systemPromptConfiguration = this.getSystemPromptConfiguration()
       if (systemPromptConfiguration) {
         requestBody.append('systemPrompts', JSON.stringify(systemPromptConfiguration))
       }
@@ -244,7 +247,8 @@ export class AnswerSession {
         if (done) break
         buffer += decoder.decode(value, { stream: true })
 
-        let endOfMessageIndex
+        // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
+        let  endOfMessageIndex
 
         // biome-ignore lint/suspicious/noAssignInExpressions: this saves a variable allocation on each iteration
         while ((endOfMessageIndex = buffer.indexOf('\n\n')) !== -1) {
@@ -346,4 +350,23 @@ export class AnswerSession {
       }
     }
   }
+
+  /**
+   * Methods associated with custom system prompts
+   */
+    public setSystemPromptConfiguration(config: { systemPrompts: string[] }) {
+      if (Array.isArray(config.systemPrompts)) {
+        if (!config.systemPrompts.every((prompt) => typeof prompt === 'string')) {
+          throw new Error('Invalid system prompt configuration')
+        }
+  
+        this.systemPrompts = config.systemPrompts
+      }
+
+      return this
+    }
+  
+    public getSystemPromptConfiguration(): string[] | undefined {
+      return this.systemPrompts
+    }
 }
